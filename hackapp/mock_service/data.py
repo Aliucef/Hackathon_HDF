@@ -125,6 +125,30 @@ def get_mock_summary(text: str) -> dict:
     }
 
 
+def process_text(text: str) -> str:
+    """
+    Clean up raw speech-to-text output.
+    Handles capitalisation, punctuation, and whitespace.
+    """
+    # Collapse whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    if not text:
+        return text
+
+    # Capitalise first character
+    text = text[0].upper() + text[1:]
+
+    # Capitalise first letter after sentence-ending punctuation
+    text = re.sub(r'([.!?])\s+([a-z])', lambda m: m.group(1) + ' ' + m.group(2).upper(), text)
+
+    # Add period at end if missing
+    if text[-1] not in '.!?':
+        text += '.'
+
+    return text
+
+
 def extract_vital_signs(text: str) -> dict:
     """
     Extract vital signs from clinical text (bonus feature)

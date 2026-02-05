@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HackApp - Excel Automation</title>
+    <style>
+        :root{
+            --bg: #d9e0ea;
+            --panel: #e9eef6;
+            --panel2: #eef3fb;
+            --line: #9fb0c6;
+            --line2:#b7c5d8;
+            --title: #2f4d79;
+            --shadow: rgba(0,0,0,.08);
+            --accent: #2f72d6;
+            --danger:#c74141;
+            --ok:#2aa86c;
+            --warning:#e89f3c;
+            --muted:#6b7a90;
+            --font: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        }
+
+        *{ box-sizing:border-box; margin:0; padding:0; }
+
+        body{
+            font-family:var(--font);
+            background:#f2f4f7;
+            color:#17212b;
+        }
+
+        .app{
+            width:min(900px, 96vw);
+            margin:20px auto;
+            background:var(--bg);
+            border:1px solid var(--line);
+            box-shadow:0 12px 28px var(--shadow);
+        }
+
+        .topbar{
+            background:linear-gradient(#d7e0ee, #c4d1e6);
+            border-bottom:1px solid var(--line);
+            padding:14px 18px;
+        }
+
+        .topbar h1{
+            font-size:18px;
+            font-weight:700;
+            color:var(--title);
+        }
+
+        .subtitle{
+            font-size:11px;
+            color:var(--muted);
+            margin-top:3px;
+        }
+
+        .content{
+            padding:20px;
+            background:var(--panel2);
+        }
+
+        .section{
+            background:var(--panel);
+            border:1px solid var(--line2);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
+            margin-bottom:16px;
+        }
+
+        .sectionHeader{
+            background:linear-gradient(#cfd9ea,#b8c7de);
+            border-bottom:1px solid var(--line2);
+            padding:10px 14px;
+            font-size:13px;
+            font-weight:700;
+            color:var(--title);
+        }
+
+        .sectionBody{
+            padding:16px;
+            background:var(--panel2);
+        }
+
+        .form-row{
+            margin-bottom:14px;
+        }
+
+        .form-label{
+            font-size:11px;
+            font-weight:700;
+            color:var(--title);
+            margin-bottom:5px;
+            display:block;
+            text-transform:uppercase;
+            letter-spacing:0.3px;
+        }
+
+        input, select{
+            font: 12px/1.35 var(--font);
+            width:100%;
+            border:1px solid var(--line2);
+            background:#fff;
+            border-radius:2px;
+            padding:8px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,.05);
+        }
+
+        .btn{
+            background:#f7f9fd;
+            border:1px solid var(--line2);
+            padding:8px 16px;
+            border-radius:3px;
+            font-size:12px;
+            color:var(--title);
+            cursor:pointer;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+            font-weight:600;
+            display:inline-block;
+        }
+
+        .btn:hover{ background:#fff; }
+
+        .btn.primary{
+            background:var(--accent);
+            color:white;
+            border-color:var(--accent);
+        }
+
+        .btn.ok{
+            background:var(--ok);
+            color:white;
+            border-color:var(--ok);
+            font-size:14px;
+            padding:10px 24px;
+        }
+
+        .btn.browse{
+            background:#f7f9fd;
+            padding:6px 12px;
+            font-size:11px;
+            margin-left:8px;
+        }
+
+        .btn:disabled{
+            opacity:0.5;
+            cursor:not-allowed;
+        }
+
+        .coordBox{
+            background:#fff;
+            border:1px solid var(--line2);
+            padding:12px;
+            border-radius:3px;
+        }
+
+        .coordStatus{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            margin-bottom:10px;
+            flex-wrap:wrap;
+        }
+
+        .coordStatus .btn{
+            font-size:11px;
+            padding:6px 12px;
+        }
+
+        .coordStatus .label{
+            font-size:11px;
+            font-weight:600;
+            color:var(--muted);
+            text-transform:uppercase;
+            letter-spacing:0.3px;
+        }
+
+        .coordStatus .value{
+            font-size:13px;
+            font-weight:700;
+            font-family:'Courier New', monospace;
+        }
+
+        .coordStatus .value.unset{
+            color:var(--danger);
+        }
+
+        .coordStatus .value.set{
+            color:var(--ok);
+        }
+
+        .coordStatus .value.waiting{
+            color:var(--warning);
+        }
+
+        .instruction{
+            background:#fff9e6;
+            border:1px solid #f5d875;
+            padding:10px 12px;
+            border-radius:3px;
+            font-size:11px;
+            line-height:1.5;
+            color:#6b5200;
+            margin-top:10px;
+        }
+
+        .instruction strong{
+            font-weight:700;
+            color:#4a3600;
+        }
+
+        .instruction code{
+            background:#fff;
+            padding:2px 6px;
+            border:1px solid #e6d054;
+            border-radius:2px;
+            font-family:'Courier New', monospace;
+            font-size:11px;
+        }
+
+        .alert{
+            padding:12px;
+            border-radius:3px;
+            margin-bottom:16px;
+            font-size:12px;
+            border:1px solid;
+        }
+
+        .alert.error{
+            background:#ffe8e8;
+            border-color:var(--danger);
+            color:#8b0000;
+        }
+
+        .alert.success{
+            background:#e8f7f0;
+            border-color:var(--ok);
+            color:#0d5c3a;
+        }
+
+        .alert.info{
+            background:#e8f2ff;
+            border-color:var(--accent);
+            color:#0d4488;
+        }
+
+        .hidden{
+            display:none !important;
+        }
+
+        .hotkey-badge{
+            display:inline-block;
+            background:var(--accent);
+            color:white;
+            padding:3px 8px;
+            border-radius:3px;
+            font-size:11px;
+            font-weight:700;
+            font-family:'Courier New', monospace;
+            letter-spacing:0.5px;
+        }
+
+        .status-dot{
+            display:inline-block;
+            width:8px;
+            height:8px;
+            border-radius:50%;
+            margin-right:6px;
+        }
+
+        .status-dot.waiting{
+            background:var(--warning);
+            animation:pulse 1.5s infinite;
+        }
+
+        .status-dot.set{
+            background:var(--ok);
+        }
+
+        .status-dot.unset{
+            background:var(--danger);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity:1; }
+            50% { opacity:0.4; }
+        }
+
+        .actions{
+            margin-top:20px;
+            padding-top:20px;
+            border-top:1px solid var(--line2);
+            text-align:center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <div class="topbar">
+        <h1>HackApp - Excel Automation</h1>
+        <div class="subtitle">Configure workflow, pick coordinates with hotkey, execute from DXCare</div>
+    </div>
+
+    <div class="content">
+        <!-- Agent Status -->
+        <div class="section">
+            <div class="sectionHeader">Agent Status</div>
+            <div class="sectionBody">
+                <div id="agentStatus" class="alert info">
+                    <strong>Note:</strong> Make sure the HackApp Agent is running in the background.
+                    <br>The agent listens for <code class="hotkey-badge">CTRL+ALT+C</code> (coordinate picker)
+                    and your custom execution hotkey.
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 1: Excel File -->
+        <div class="section">
+            <div class="sectionHeader">1. Excel File</div>
+            <div class="sectionBody">
+                <div class="form-row">
+                    <label class="form-label">Excel File Path (Full Path Required)</label>
+                    <div style="display:flex; align-items:center;">
+                        <input type="text" id="excelPath" placeholder="C:\Users\YourName\Desktop\patient_data.xlsx">
+                        <button class="btn browse" onclick="browseExcel()">Browse</button>
+                    </div>
+                    <div style="font-size:10px; color:var(--muted); margin-top:4px;">
+                        Type or paste the full file path. Browse button only fills the filename - you must add the folder path.
+                    </div>
+                </div>
+                <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleFileSelect(event)">
+            </div>
+        </div>
+
+        <!-- Step 2: Column Configuration -->
+        <div class="section">
+            <div class="sectionHeader">2. Column Configuration</div>
+            <div class="sectionBody">
+                <div class="form-row">
+                    <label class="form-label">Search Column (where patient IDs/names are)</label>
+                    <input type="text" id="searchColumn" placeholder="e.g., Patient ID or Patient Name">
+                </div>
+                <div class="form-row">
+                    <label class="form-label">Return Columns (comma-separated)</label>
+                    <input type="text" id="returnColumns" placeholder="e.g., First Name, Last Name, Age, Diagnosis, ICD-10 Code">
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Patient Name/ID Location -->
+        <div class="section">
+            <div class="sectionHeader">3. Patient ID/Name Location (OCR)</div>
+            <div class="sectionBody">
+                <div class="coordBox">
+                    <div class="coordStatus">
+                        <span class="status-dot unset" id="patientDot"></span>
+                        <span class="label">Coordinates:</span>
+                        <span class="value unset" id="patientCoordDisplay">Not Set</span>
+                        <button class="btn primary" id="patientToggle" onclick="toggleField('patient')" style="margin-left:auto;">
+                            Set This Field
+                        </button>
+                    </div>
+
+                    <div class="instruction">
+                        <strong>To set coordinates:</strong><br>
+                        1. Click "Set This Field" button above<br>
+                        2. Open DXCare with patient visible<br>
+                        3. Press <code>CTRL+ALT+C</code> anywhere<br>
+                        4. Click on the patient ID field
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Output Field Location -->
+        <div class="section">
+            <div class="sectionHeader">4. Output Field Location (Paste Target)</div>
+            <div class="sectionBody">
+                <div class="coordBox">
+                    <div class="coordStatus">
+                        <span class="status-dot unset" id="outputDot"></span>
+                        <span class="label">Coordinates:</span>
+                        <span class="value unset" id="outputCoordDisplay">Not Set</span>
+                        <button class="btn primary" id="outputToggle" onclick="toggleField('output')" style="margin-left:auto;">
+                            Set This Field
+                        </button>
+                    </div>
+
+                    <div class="instruction">
+                        <strong>To set coordinates:</strong><br>
+                        1. Click "Set This Field" button above<br>
+                        2. Press <code>CTRL+ALT+C</code> anywhere<br>
+                        3. Click on the field where you want results pasted
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 5: Execution Hotkey -->
+        <div class="section">
+            <div class="sectionHeader">5. Execution Hotkey</div>
+            <div class="sectionBody">
+                <div class="form-row">
+                    <label class="form-label">Choose Hotkey to Execute Workflow</label>
+                    <input type="text" id="executeHotkey" placeholder="e.g., CTRL+ALT+E or CTRL+ALT+X" value="CTRL+ALT+E">
+                    <div style="font-size:10px; color:var(--muted); margin-top:4px;">
+                        Press this hotkey in DXCare to trigger the workflow (OCR → Excel → Paste)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save & Execute -->
+        <div class="actions">
+            <button class="btn ok" onclick="saveWorkflow()" id="saveBtn">
+                💾 Save Workflow Configuration
+            </button>
+
+            <div style="margin-top:16px; font-size:12px; color:var(--muted);">
+                After saving, go to DXCare and press your execution hotkey to run the workflow!
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="alertContainer"></div>
+    </div>
+</div>
+
+<script>
+const API_URL = window.location.origin;
+const AUTH_TOKEN = 'Bearer hackathon_demo_token';
+
+// State
+let config = {
+    excelPath: '',
+    searchColumn: '',
+    returnColumns: [],
+    patientCoords: null,
+    outputCoords: null,
+    executeHotkey: 'CTRL+ALT+E'
+};
+
+let pickingSessions = {
+    patient: null,
+    output: null
+};
+
+let activeField = null; // Which field is currently being set ('patient' or 'output')
+let pollingInterval = null;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    loadExistingWorkflow();
+    startPolling();
+});
+
+// Excel file selection
+function browseExcel() {
+    document.getElementById('excelFileInput').click();
+}
+
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const filename = file.name;
+        document.getElementById('excelPath').value = filename;
+
+        showAlert('info', `File selected: ${filename}. Now edit the path field to add the full folder path (e.g., C:\\Users\\YourName\\Desktop\\${filename})`);
+    }
+}
+
+// Toggle field for coordinate picking
+function toggleField(fieldType) {
+    // If already active, deactivate
+    if (activeField === fieldType) {
+        activeField = null;
+        updateToggleButton(fieldType, false);
+        pickingSessions[fieldType] = null;
+        return;
+    }
+
+    // Deactivate other field
+    if (activeField) {
+        updateToggleButton(activeField, false);
+        pickingSessions[activeField] = null;
+    }
+
+    // Activate this field
+    activeField = fieldType;
+    updateToggleButton(fieldType, true);
+    activatePickingSession(fieldType);
+}
+
+function updateToggleButton(fieldType, active) {
+    const btnId = fieldType === 'patient' ? 'patientToggle' : 'outputToggle';
+    const btn = document.getElementById(btnId);
+
+    if (active) {
+        btn.textContent = 'Waiting for CTRL+ALT+C...';
+        btn.style.background = 'var(--warning)';
+        btn.style.borderColor = 'var(--warning)';
+        btn.disabled = false;
+    } else {
+        btn.textContent = 'Set This Field';
+        btn.style.background = 'var(--accent)';
+        btn.style.borderColor = 'var(--accent)';
+        btn.disabled = false;
+    }
+}
+
+// Polling for coordinate updates
+function startPolling() {
+    // Poll every 500ms for coordinate updates
+    pollingInterval = setInterval(async () => {
+        // Only poll if there's an active field
+        if (!activeField) return;
+
+        const session = pickingSessions[activeField];
+        if (!session) return;
+
+        const result = await pollSession(session, activeField);
+        if (result) {
+            // Coordinates received!
+            if (activeField === 'patient') {
+                config.patientCoords = result;
+            } else {
+                config.outputCoords = result;
+            }
+
+            updateCoordDisplay(activeField, result);
+            updateToggleButton(activeField, false);
+
+            // Clear session and active field
+            pickingSessions[activeField] = null;
+            activeField = null;
+        }
+    }, 500);
+}
+
+async function pollSession(sessionId, fieldType) {
+    try {
+        const response = await fetch(`${API_URL}/api/picker/status/${sessionId}`, {
+            headers: { 'Authorization': AUTH_TOKEN }
+        });
+
+        if (!response.ok) return null;
+
+        const data = await response.json();
+
+        if (data.status === 'completed' && data.coordinates) {
+            return data.coordinates;
+        }
+
+        return null;
+    } catch (error) {
+        console.error('Poll error:', error);
+        return null;
+    }
+}
+
+async function activatePickingSession(fieldType) {
+    const sessionId = `${fieldType}_${Date.now()}`;
+    const fieldName = fieldType === 'patient' ? 'patient_coords' : 'output_coords';
+
+    try {
+        const response = await fetch(`${API_URL}/api/picker/activate`, {
+            method: 'POST',
+            headers: {
+                'Authorization': AUTH_TOKEN,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                session_id: sessionId,
+                field_name: fieldName
+            })
+        });
+
+        if (response.ok) {
+            pickingSessions[fieldType] = sessionId;
+        }
+    } catch (error) {
+        console.error('Activate picker error:', error);
+    }
+}
+
+function updateCoordDisplay(fieldType, coords) {
+    const dotId = fieldType === 'patient' ? 'patientDot' : 'outputDot';
+    const displayId = fieldType === 'patient' ? 'patientCoordDisplay' : 'outputCoordDisplay';
+
+    document.getElementById(dotId).className = 'status-dot set';
+    document.getElementById(displayId).className = 'value set';
+    document.getElementById(displayId).textContent = `(${coords.x}, ${coords.y})`;
+}
+
+// Save workflow
+async function saveWorkflow() {
+    // Validation
+    config.excelPath = document.getElementById('excelPath').value.trim();
+    config.searchColumn = document.getElementById('searchColumn').value.trim();
+    const returnColsStr = document.getElementById('returnColumns').value.trim();
+    config.returnColumns = returnColsStr.split(',').map(c => c.trim()).filter(c => c);
+    config.executeHotkey = document.getElementById('executeHotkey').value.trim().toUpperCase();
+
+    if (!config.excelPath) {
+        showAlert('error', 'Please select an Excel file.');
+        return;
+    }
+
+    if (!config.searchColumn) {
+        showAlert('error', 'Please specify the search column.');
+        return;
+    }
+
+    if (config.returnColumns.length === 0) {
+        showAlert('error', 'Please specify at least one return column.');
+        return;
+    }
+
+    if (!config.patientCoords) {
+        showAlert('error', 'Please set patient ID/name coordinates using CTRL+ALT+C.');
+        return;
+    }
+
+    if (!config.outputCoords) {
+        showAlert('error', 'Please set output field coordinates using CTRL+ALT+C.');
+        return;
+    }
+
+    if (!config.executeHotkey) {
+        showAlert('error', 'Please specify an execution hotkey.');
+        return;
+    }
+
+    // Build workflow
+    const workflow = {
+        workflow_id: 'excel_lookup_auto',
+        name: 'Excel Patient Lookup',
+        description: `Search ${config.searchColumn} in Excel, return ${config.returnColumns.join(', ')}`,
+        hotkey: config.executeHotkey,
+        enabled: true,
+        steps: [
+            {
+                step_id: '1',
+                step_type: 'read_coords',
+                name: 'Read patient ID/name from screen',
+                x: config.patientCoords.x,
+                y: config.patientCoords.y,
+                width: 200,
+                height: 30,
+                output_variable: 'patient_identifier'
+            },
+            {
+                step_id: '2',
+                step_type: 'lookup_excel',
+                name: 'Lookup patient data in Excel',
+                file_path: config.excelPath,
+                search_column: config.searchColumn,
+                search_value_variable: 'patient_identifier',
+                return_columns: config.returnColumns,
+                output_variable: 'patient_data'
+            },
+            {
+                step_id: '3',
+                step_type: 'write_coords',
+                name: 'Paste results to field',
+                x: config.outputCoords.x,
+                y: config.outputCoords.y,
+                content_template: buildContentTemplate(config.returnColumns),
+                insert_method: 'paste'
+            }
+        ]
+    };
+
+    // Save to middleware
+    try {
+        document.getElementById('saveBtn').disabled = true;
+        document.getElementById('saveBtn').textContent = '💾 Saving...';
+
+        // Check if workflow exists
+        const existingWorkflow = await fetch(`${API_URL}/api/visual-workflows/excel_lookup_auto`, {
+            headers: { 'Authorization': AUTH_TOKEN }
+        });
+
+        let response;
+        if (existingWorkflow.ok) {
+            // Update existing
+            response = await fetch(`${API_URL}/api/visual-workflows/excel_lookup_auto`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': AUTH_TOKEN,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(workflow)
+            });
+        } else {
+            // Create new
+            response = await fetch(`${API_URL}/api/visual-workflows`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': AUTH_TOKEN,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(workflow)
+            });
+        }
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || error.detail || 'Save failed');
+        }
+
+        showAlert('success', `✅ Workflow saved! Press ${config.executeHotkey} in DXCare to execute.`);
+
+        document.getElementById('saveBtn').textContent = '💾 Save Workflow Configuration';
+
+    } catch (error) {
+        showAlert('error', `Failed to save workflow: ${error.message}`);
+    } finally {
+        document.getElementById('saveBtn').disabled = false;
+    }
+}
+
+function buildContentTemplate(returnColumns) {
+    // Build template like: "First Name: {patient_data.First Name}, Last Name: {patient_data.Last Name}, ..."
+    return returnColumns.map(col => `${col}: {patient_data.${col}}`).join(', ');
+}
+
+// Load existing workflow
+async function loadExistingWorkflow() {
+    try {
+        const response = await fetch(`${API_URL}/api/visual-workflows/excel_lookup_auto`, {
+            headers: { 'Authorization': AUTH_TOKEN }
+        });
+
+        if (!response.ok) return;
+
+        const workflow = await response.json();
+
+        // Populate fields
+        if (workflow.hotkey) {
+            document.getElementById('executeHotkey').value = workflow.hotkey;
+            config.executeHotkey = workflow.hotkey;
+        }
+
+        // Extract config from steps
+        workflow.steps.forEach(step => {
+            if (step.step_type === 'read_coords') {
+                config.patientCoords = { x: step.x, y: step.y };
+                updateCoordDisplay('patient', config.patientCoords);
+            } else if (step.step_type === 'lookup_excel') {
+                config.excelPath = step.file_path;
+                config.searchColumn = step.search_column;
+                config.returnColumns = step.return_columns;
+                document.getElementById('excelPath').value = config.excelPath;
+                document.getElementById('searchColumn').value = config.searchColumn;
+                document.getElementById('returnColumns').value = config.returnColumns.join(', ');
+            } else if (step.step_type === 'write_coords') {
+                config.outputCoords = { x: step.x, y: step.y };
+                updateCoordDisplay('output', config.outputCoords);
+            }
+        });
+
+        showAlert('info', 'Loaded existing workflow configuration.');
+
+    } catch (error) {
+        console.log('No existing workflow found (this is normal for first-time setup)');
+    }
+}
+
+// Alert system
+function showAlert(type, message) {
+    const container = document.getElementById('alertContainer');
+    const alert = document.createElement('div');
+    alert.className = `alert ${type}`;
+    alert.textContent = message;
+
+    container.innerHTML = '';
+    container.appendChild(alert);
+
+    setTimeout(() => {
+        alert.remove();
+    }, 5000);
+}
+</script>
+
+</body>
+</html>

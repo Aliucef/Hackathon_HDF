@@ -7,7 +7,7 @@ import time
 import requests
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
-from .models import ConnectorConfig
+from middleware.models import ConnectorConfig
 
 
 class Connector(ABC):
@@ -319,7 +319,7 @@ if __name__ == "__main__":
     print("=" * 60)
 
     # Create mock connector config
-    from .models import ConnectorConfig, AuthConfig, RetryPolicy
+    from middleware.models import ConnectorConfig, AuthConfig, RetryPolicy
 
     config = ConnectorConfig(
         type="rest_api",

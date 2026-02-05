@@ -8,17 +8,21 @@ import time
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from typing import Optional
+from pathlib import Path
 
-from .models import (
+from middleware.models import (
     TriggerRequest, WorkflowResponse, HealthResponse,
     WorkflowListResponse, Context
 )
-from .workflow_engine import WorkflowEngine
-from .connector import ConnectorRegistry, create_connector
-from .config_loader import load_all_configs
-from .audit import init_audit_logger, get_audit_logger
+from middleware.workflow_engine import WorkflowEngine
+from middleware.connector import ConnectorRegistry, create_connector
+from middleware.config_loader import load_all_configs
+from middleware.audit import init_audit_logger, get_audit_logger
+from middleware.visual_workflows import VisualWorkflow, VisualWorkflowStorage
+from middleware.visual_executor import WorkflowExecutor
 
 
 # ============================================================================
@@ -42,7 +46,13 @@ app.add_middleware(
 
 # Global state
 workflow_engine: Optional[WorkflowEngine] = None
+visual_workflow_storage: Optional[VisualWorkflowStorage] = None
+workflow_executor: Optional[WorkflowExecutor] = None
 startup_time: Optional[datetime] = None
+
+# Picker coordination state
+picker_sessions: dict = {}  # session_id -> {"field_name": str, "coordinates": Optional[tuple]}
+current_session_id: Optional[str] = None
 
 # Configuration
 MIDDLEWARE_TOKEN = os.getenv("MIDDLEWARE_TOKEN", "hackathon_demo_token")
@@ -56,7 +66,7 @@ AUDIT_LOG_PATH = os.getenv("AUDIT_LOG_PATH", "logs/audit.log")
 @app.on_event("startup")
 async def startup_event():
     """Initialize on startup"""
-    global workflow_engine, startup_time
+    global workflow_engine, visual_workflow_storage, workflow_executor, startup_time
 
     print("=" * 70)
     print("🧠 HackApp Middleware Starting...")
@@ -86,6 +96,13 @@ async def startup_event():
             connector_registry=connector_registry,
             icd10_catalog=icd10_catalog
         )
+
+        # Initialize visual workflow system
+        print("\n🎨 Initializing visual workflow system...")
+        visual_workflow_storage = VisualWorkflowStorage()
+        workflow_executor = WorkflowExecutor()
+        visual_workflows = visual_workflow_storage.list()
+        print(f"✅ Loaded {len(visual_workflows)} visual workflows")
 
         startup_time = datetime.now()
 
@@ -151,20 +168,27 @@ def verify_token(authorization: Optional[str] = Header(None)):
 # API Endpoints
 # ============================================================================
 
-@app.get("/", tags=["Root"])
+@app.get("/", response_class=HTMLResponse, tags=["Root"])
 async def root():
-    """Root endpoint"""
-    return {
-        "service": "HackApp Middleware",
-        "version": "1.0.0",
-        "status": "running",
-        "endpoints": {
-            "health": "/api/health",
-            "trigger": "/api/trigger (POST)",
-            "workflows": "/api/workflows",
-            "docs": "/docs"
+    """Root endpoint - serves dashboard"""
+    dashboard_path = Path(__file__).parent / "static" / "index.html"
+    if dashboard_path.exists():
+        return HTMLResponse(content=dashboard_path.read_text(), status_code=200)
+    else:
+        # Fallback if dashboard doesn't exist yet
+        return {
+            "service": "HackApp Middleware",
+            "version": "1.0.0",
+            "status": "running",
+            "endpoints": {
+                "dashboard": "/",
+                "health": "/api/health",
+                "trigger": "/api/trigger (POST)",
+                "workflows": "/api/workflows",
+                "audit": "/api/audit/recent",
+                "docs": "/docs"
+            }
         }
-    }
 
 
 @app.get("/api/health", response_model=HealthResponse, tags=["Monitoring"])
@@ -219,6 +243,24 @@ async def list_workflows(authorization: str = Header(None)):
     )
 
 
+@app.get("/api/audit/recent", tags=["Monitoring"])
+async def get_recent_audit_logs(limit: int = 50, authorization: str = Header(None)):
+    """
+    Get recent audit log entries
+
+    Requires authentication.
+    """
+    verify_token(authorization)
+
+    audit_logger = get_audit_logger()
+    entries = audit_logger.get_recent_entries(limit=limit)
+
+    return {
+        "entries": entries,
+        "total": len(entries)
+    }
+
+
 @app.post("/api/trigger", response_model=WorkflowResponse, tags=["Workflows"])
 async def trigger_workflow(
     request: TriggerRequest,
@@ -260,6 +302,229 @@ async def trigger_workflow(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# ============================================================================
+# Visual Workflow Endpoints
+# ============================================================================
+
+@app.get("/api/visual-workflows", tags=["Visual Workflows"])
+async def list_visual_workflows(authorization: str = Header(None)):
+    """List all visual workflows"""
+    verify_token(authorization)
+
+    if visual_workflow_storage is None:
+        raise HTTPException(status_code=503, detail="Visual workflow system not initialized")
+
+    workflows = visual_workflow_storage.list()
+    return {
+        "workflows": [wf.model_dump(mode='json') for wf in workflows],
+        "total": len(workflows)
+    }
+
+
+@app.post("/api/visual-workflows", tags=["Visual Workflows"])
+async def create_visual_workflow(workflow: VisualWorkflow, authorization: str = Header(None)):
+    """Create a new visual workflow"""
+    verify_token(authorization)
+
+    if visual_workflow_storage is None:
+        raise HTTPException(status_code=503, detail="Visual workflow system not initialized")
+
+    try:
+        created = visual_workflow_storage.create(workflow)
+        return {"status": "created", "workflow": created.model_dump(mode='json')}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/visual-workflows/{workflow_id}", tags=["Visual Workflows"])
+async def get_visual_workflow(workflow_id: str, authorization: str = Header(None)):
+    """Get a specific visual workflow"""
+    verify_token(authorization)
+
+    if visual_workflow_storage is None:
+        raise HTTPException(status_code=503, detail="Visual workflow system not initialized")
+
+    workflow = visual_workflow_storage.get(workflow_id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail=f"Workflow '{workflow_id}' not found")
+
+    return workflow.model_dump(mode='json')
+
+
+@app.put("/api/visual-workflows/{workflow_id}", tags=["Visual Workflows"])
+async def update_visual_workflow(
+    workflow_id: str,
+    workflow: VisualWorkflow,
+    authorization: str = Header(None)
+):
+    """Update a visual workflow"""
+    verify_token(authorization)
+
+    if visual_workflow_storage is None:
+        raise HTTPException(status_code=503, detail="Visual workflow system not initialized")
+
+    try:
+        updated = visual_workflow_storage.update(workflow_id, workflow)
+        return {"status": "updated", "workflow": updated.model_dump(mode='json')}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.delete("/api/visual-workflows/{workflow_id}", tags=["Visual Workflows"])
+async def delete_visual_workflow(workflow_id: str, authorization: str = Header(None)):
+    """Delete a visual workflow"""
+    verify_token(authorization)
+
+    if visual_workflow_storage is None:
+        raise HTTPException(status_code=503, detail="Visual workflow system not initialized")
+
+    visual_workflow_storage.delete(workflow_id)
+    return {"status": "deleted", "workflow_id": workflow_id}
+
+
+@app.post("/api/visual-workflows/{workflow_id}/execute", tags=["Visual Workflows"])
+async def execute_visual_workflow(workflow_id: str, authorization: str = Header(None)):
+    """Execute a visual workflow"""
+    verify_token(authorization)
+
+    if visual_workflow_storage is None or workflow_executor is None:
+        raise HTTPException(status_code=503, detail="Visual workflow system not initialized")
+
+    workflow = visual_workflow_storage.get(workflow_id)
+    if not workflow:
+        raise HTTPException(status_code=404, detail=f"Workflow '{workflow_id}' not found")
+
+    try:
+        result = workflow_executor.execute(workflow.model_dump(mode='json'))
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# Picker Coordination Endpoints
+# ============================================================================
+
+@app.post("/api/picker/activate", tags=["Picker"])
+async def activate_picker(
+    request: dict,
+    authorization: str = Header(None)
+):
+    """
+    Activate coordinate picker for a specific field
+
+    Request body:
+        {
+            "session_id": "unique_session_id",
+            "field_name": "patient_coords" | "output_coords"
+        }
+    """
+    verify_token(authorization)
+
+    global current_session_id, picker_sessions
+
+    session_id = request.get("session_id")
+    field_name = request.get("field_name")
+
+    if not session_id or not field_name:
+        raise HTTPException(status_code=400, detail="Missing session_id or field_name")
+
+    # Create/update picking session
+    picker_sessions[session_id] = {
+        "field_name": field_name,
+        "coordinates": None
+    }
+    current_session_id = session_id
+
+    return {
+        "status": "picker_activated",
+        "session_id": session_id,
+        "field_name": field_name,
+        "instruction": f"Press CTRL+ALT+C in DXCare, then click to set {field_name}"
+    }
+
+
+@app.post("/api/picker/coordinates", tags=["Picker"])
+async def receive_coordinates(
+    request: dict,
+    authorization: str = Header(None)
+):
+    """
+    Receive coordinates from agent
+
+    Request body:
+        {
+            "field_name": "field_name",  # Not used if session active
+            "x": 123,
+            "y": 456
+        }
+    """
+    verify_token(authorization)
+
+    global current_session_id, picker_sessions
+
+    x = request.get("x")
+    y = request.get("y")
+
+    if x is None or y is None:
+        raise HTTPException(status_code=400, detail="Missing x or y coordinates")
+
+    # If there's an active session, update it
+    if current_session_id and current_session_id in picker_sessions:
+        picker_sessions[current_session_id]["coordinates"] = (x, y)
+        return {
+            "status": "coordinates_received",
+            "session_id": current_session_id,
+            "field_name": picker_sessions[current_session_id]["field_name"],
+            "x": x,
+            "y": y
+        }
+
+    # Otherwise just acknowledge
+    return {
+        "status": "coordinates_received",
+        "x": x,
+        "y": y
+    }
+
+
+@app.get("/api/picker/status/{session_id}", tags=["Picker"])
+async def get_picker_status(
+    session_id: str,
+    authorization: str = Header(None)
+):
+    """
+    Poll for picker status (for dashboard)
+
+    Returns:
+        {
+            "status": "waiting" | "completed",
+            "field_name": "patient_coords",
+            "coordinates": {"x": 123, "y": 456} | null
+        }
+    """
+    verify_token(authorization)
+
+    if session_id not in picker_sessions:
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
+
+    session = picker_sessions[session_id]
+    coordinates = session["coordinates"]
+
+    if coordinates:
+        return {
+            "status": "completed",
+            "field_name": session["field_name"],
+            "coordinates": {"x": coordinates[0], "y": coordinates[1]}
+        }
+    else:
+        return {
+            "status": "waiting",
+            "field_name": session["field_name"],
+            "coordinates": None
+        }
 
 
 # ============================================================================

@@ -1,0 +1,13 @@
+# Speech-to-Text App Dependencies
+
+# Microphone recording (more compatible than PyAudio across Python versions)
+sounddevice==0.4.6
+
+# Google speech recognition API wrapper
+SpeechRecognition==3.10.0
+
+# Audio array handling
+numpy>=1.24
+
+# Clipboard
+pyperclip==1.8.2

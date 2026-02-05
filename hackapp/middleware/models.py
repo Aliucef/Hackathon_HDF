@@ -95,6 +95,8 @@ class OutputConfig(BaseModel):
     mode: Literal["replace", "append", "prepend"] = "replace"
     navigation: Optional[str] = Field(None, description="Navigation instruction (e.g., 'tab_3')")
     label: Optional[str] = Field(None, description="Optional label for ICD-10 codes")
+    click_before: Optional[str] = Field(None, description="Screen coordinates to click before inserting (format: 'x,y')")
+    insert_method: Literal["type", "paste"] = Field("type", description="type = character by character; paste = clipboard paste")
 
     class Config:
         json_schema_extra = {
@@ -213,6 +215,8 @@ class InsertionInstruction(BaseModel):
     type: Literal["text", "icd10"] = "text"
     navigation: Optional[str] = Field(None, description="Navigation instruction")
     label: Optional[str] = Field(None, description="Display label for ICD-10")
+    click_before: Optional[str] = Field(None, description="Screen coordinates to click before inserting (format: 'x,y')")
+    insert_method: Literal["type", "paste"] = Field("type", description="type = character by character; paste = clipboard paste")
 
     class Config:
         json_schema_extra = {

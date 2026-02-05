@@ -7,8 +7,9 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
-from .models import AuditLogEntry
+from typing import Optional, List
+from collections import deque
+from middleware.models import AuditLogEntry
 
 
 class AuditLogger:
@@ -37,6 +38,9 @@ class AuditLogger:
         """
         self.logger = logging.getLogger('hackapp.audit')
         self.logger.setLevel(logging.INFO)
+
+        # In-memory buffer for recent entries (for dashboard)
+        self.recent_entries: deque = deque(maxlen=100)
 
         # Console handler
         console_handler = logging.StreamHandler()
@@ -100,10 +104,14 @@ class AuditLogger:
             "status": entry.status,
             "execution_time_ms": entry.execution_time_ms,
             "user_id": entry.user_id,
-            "error_code": entry.error_code
+            "error_code": entry.error_code,
+            "timestamp": entry.timestamp.isoformat()
         }
 
         self.logger.info(json.dumps(log_data))
+
+        # Store in memory for dashboard
+        self.recent_entries.append(log_data)
 
     def log_error(
         self,
@@ -151,6 +159,20 @@ class AuditLogger:
         }
 
         self.logger.info(json.dumps(log_data))
+
+    def get_recent_entries(self, limit: int = 50) -> List[dict]:
+        """
+        Get recent audit log entries
+
+        Args:
+            limit: Maximum number of entries to return
+
+        Returns:
+            List of recent log entries (newest first)
+        """
+        entries = list(self.recent_entries)
+        entries.reverse()  # Newest first
+        return entries[:limit]
 
 
 # ============================================================================

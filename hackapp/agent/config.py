@@ -10,11 +10,19 @@ from typing import Dict
 MIDDLEWARE_URL = os.getenv("MIDDLEWARE_URL", "http://localhost:5000")
 MIDDLEWARE_TOKEN = os.getenv("MIDDLEWARE_TOKEN", "hackathon_demo_token")
 
-# Hotkey mappings
+# Coordinate picker hotkey (fixed)
+PICKER_HOTKEY = '<ctrl>+<alt>+c'
+PICKER_HOTKEY_DISPLAY = 'CTRL+ALT+C'
+
+# Hotkey mappings (YAML workflows)
 HOTKEYS: Dict[str, str] = {
     '<ctrl>+<alt>+v': 'CTRL+ALT+V',  # Voice AI summarization
     '<ctrl>+<alt>+d': 'CTRL+ALT+D',  # Drug interaction checker
+    '<ctrl>+<alt>+m': 'CTRL+ALT+M',  # Speech to DXCare observation field
 }
+
+# Dynamic hotkeys for visual workflows (loaded from middleware at runtime)
+DYNAMIC_HOTKEYS: Dict[str, str] = {}
 
 # UI Automation settings
 AUTO_INSERT_ENABLED = True

@@ -123,6 +123,99 @@ class MiddlewareClient:
             print(f"⚠️  Could not list workflows: {e}")
             return None
 
+    def list_visual_workflows(self) -> Optional[list]:
+        """
+        List available visual workflows with their hotkeys
+
+        Returns:
+            List of visual workflows or None if error
+        """
+        url = f"{self.base_url}/api/visual-workflows"
+
+        try:
+            response = self.session.get(url, timeout=self.timeout)
+            response.raise_for_status()
+
+            data = response.json()
+            return data.get('workflows', [])
+
+        except Exception as e:
+            print(f"⚠️  Could not list visual workflows: {e}")
+            return None
+
+    def execute_visual_workflow(self, workflow_id: str) -> dict:
+        """
+        Execute a visual workflow
+
+        Args:
+            workflow_id: Workflow ID to execute
+
+        Returns:
+            Execution result dictionary
+
+        Raises:
+            MiddlewareError: If request fails
+        """
+        url = f"{self.base_url}/api/visual-workflows/{workflow_id}/execute"
+
+        try:
+            response = self.session.post(
+                url,
+                timeout=self.timeout
+            )
+
+            response.raise_for_status()
+            return response.json()
+
+        except requests.exceptions.Timeout:
+            raise MiddlewareError(
+                "Request timeout - middleware not responding",
+                error_code="TIMEOUT"
+            )
+        except requests.exceptions.HTTPError as e:
+            error_msg = e.response.text if hasattr(e.response, 'text') else str(e)
+            raise MiddlewareError(
+                f"Middleware error: {error_msg}",
+                error_code=f"HTTP_{e.response.status_code}"
+            )
+        except Exception as e:
+            raise MiddlewareError(
+                f"Unexpected error: {str(e)}",
+                error_code="UNKNOWN_ERROR"
+            )
+
+    def report_picked_coordinates(self, field_name: str, x: int, y: int) -> bool:
+        """
+        Report picked coordinates to middleware
+
+        Args:
+            field_name: Name of the field being picked
+            x: X coordinate
+            y: Y coordinate
+
+        Returns:
+            True if successful, False otherwise
+        """
+        url = f"{self.base_url}/api/picker/coordinates"
+
+        try:
+            response = self.session.post(
+                url,
+                json={
+                    "field_name": field_name,
+                    "x": x,
+                    "y": y
+                },
+                timeout=5
+            )
+
+            response.raise_for_status()
+            return True
+
+        except Exception as e:
+            print(f"⚠️  Could not report coordinates: {e}")
+            return False
+
 
 class MiddlewareError(Exception):
     """Exception for middleware client errors"""

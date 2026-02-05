@@ -5,7 +5,7 @@ Security and medical data validation
 
 import re
 from typing import List, Optional
-from .models import ValidationResult, ICD10Code
+from middleware.models import ValidationResult, ICD10Code
 
 
 class ICD10Validator:

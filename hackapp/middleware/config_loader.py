@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import List, Dict
 from pydantic import ValidationError
 
-from .models import WorkflowConfig, ConnectorConfig, ICD10Code
+from middleware.models import WorkflowConfig, ConnectorConfig, ICD10Code
 
 
 class ConfigLoader:

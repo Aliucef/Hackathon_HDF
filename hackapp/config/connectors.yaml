@@ -32,9 +32,10 @@ connectors:
     base_url: "http://localhost:5002"
 
     auth:
-      type: api_key
-      header: "X-API-Key"
-      token_env: DRUG_CHECKER_API_KEY
+      type: none  # Disabled for demo; no drug checker service running
+      # type: api_key
+      # header: "X-API-Key"
+      # token_env: DRUG_CHECKER_API_KEY
 
     endpoints:
       check: "/api/check_interactions"
@@ -45,6 +46,27 @@ connectors:
       max_retries: 3
       backoff: exponential
       initial_delay: 0.5
+
+  text_processor:
+    type: rest_api
+    name: "Speech Text Cleanup Service"
+    base_url: "http://localhost:5001"
+
+    auth:
+      type: none
+
+    endpoints:
+      process: "/api/process_text"
+
+    timeout: 10
+
+    retry_policy:
+      max_retries: 1
+      backoff: fixed
+      initial_delay: 0.5
+
+    headers:
+      Content-Type: "application/json"
 
   # Example: Real external service (disabled)
   # openai_api:

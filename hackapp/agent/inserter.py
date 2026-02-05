@@ -38,16 +38,32 @@ class FieldInserter:
         mode = instruction.get('mode', 'replace')
         navigation = instruction.get('navigation')
 
+        click_before = instruction.get('click_before')
+        insert_method = instruction.get('insert_method', 'type')
+
         print(f"\n   📝 Inserting into {target_field}...")
-        print(f"      Mode: {mode}")
+        print(f"      Mode: {mode} ({insert_method})")
         print(f"      Content: {content[:50]}..." if len(content) > 50 else f"      Content: {content}")
 
         # Pause before starting
         time.sleep(pause_before)
 
+        # Click into the target field if coordinates are specified
+        if click_before:
+            try:
+                x, y = map(int, click_before.split(','))
+                print(f"      🖱️  Clicking field at ({x}, {y})...")
+                pyautogui.click(x, y)
+                time.sleep(0.3)
+            except (ValueError, IndexError):
+                print(f"      ⚠️  Invalid click_before coordinates: {click_before}")
+
         # Handle mode
         if mode == "replace":
-            self._replace_content(content)
+            if insert_method == "paste":
+                self._paste_content(content)
+            else:
+                self._replace_content(content)
         elif mode == "append":
             self._append_content(content)
         elif mode == "prepend":
@@ -80,6 +96,23 @@ class FieldInserter:
 
         # Type new content
         self._type_text(content)
+
+    def _paste_content(self, content: str):
+        """
+        Replace current field content via clipboard paste.
+        Faster and handles all characters (unlike write() which is ASCII-only).
+        """
+        import pyperclip
+
+        # Select all existing content in the field
+        pyautogui.hotkey('ctrl', 'a')
+        time.sleep(0.05)
+
+        # Put new content on clipboard and paste
+        pyperclip.copy(content)
+        time.sleep(0.05)
+        pyautogui.hotkey('ctrl', 'v')
+        time.sleep(0.1)
 
     def _append_content(self, content: str):
         """

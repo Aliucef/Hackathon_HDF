@@ -19,7 +19,7 @@ workflows:
     request:
       template: |
         {
-          "text": "{{ input_text }}",
+          "text": {{ input_text | tojson }},
           "language": "en",
           "include_icd10": true
         }
@@ -61,6 +61,54 @@ workflows:
       require_confirmation: false
       max_response_size: 100000
 
+  # Speech-to-text → DXCare observation field
+  - workflow_id: speech_to_dxcare
+    name: "Speech to DXCare Observation"
+    hotkey: "CTRL+ALT+M"
+    enabled: true
+    description: "Clean up speech-to-text output and paste into the DXCare observation field"
+
+    input:
+      source: clipboard          # speech app auto-copies here; no Ctrl+C needed
+      validation:
+        min_length: 3
+        max_length: 10000
+
+    connector: text_processor
+
+    request:
+      template: |
+        {
+          "text": {{ input_text | tojson }}
+        }
+      timeout: 10
+      method: POST
+
+    response:
+      mappings:
+        processed_text: $.processed_text
+
+    validation:
+      required_fields:
+        - processed_text
+
+    output:
+      - type: text
+        target_field: ObservationField
+        content: "{{ processed_text }}"
+        mode: replace
+        navigation: null
+        # Coordinates of the large observation field in DXCare.
+        # Adjust x,y to match your screen / window layout.
+        click_before: "400,350"
+        insert_method: paste
+
+    security:
+      allowed_fields:
+        - ObservationField
+      require_confirmation: false
+      max_response_size: 50000
+
   # Example: Drug Interaction Checker (disabled for now)
   - workflow_id: drug_interaction_check
     name: "Drug Interaction Checker"
@@ -79,7 +127,7 @@ workflows:
     request:
       template: |
         {
-          "medications": "{{ input_text }}"
+          "medications": {{ input_text | tojson }}
         }
       timeout: 20
       method: POST

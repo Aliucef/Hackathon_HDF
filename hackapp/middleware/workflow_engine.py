@@ -5,15 +5,15 @@ Core orchestration logic for executing workflows
 
 import time
 from typing import List, Dict, Any, Optional
-from .models import (
+from middleware.models import (
     WorkflowConfig, Context, WorkflowResponse, InsertionInstruction
 )
-from .connector import ConnectorRegistry, ConnectorError
-from .transformers import TemplateRenderer, ResponseExtractor, OutputBuilder
-from .validators import (
+from middleware.connector import ConnectorRegistry, ConnectorError
+from middleware.transformers import TemplateRenderer, ResponseExtractor, OutputBuilder
+from middleware.validators import (
     ICD10Validator, FieldWhitelistValidator, InputValidator, SecurityValidator
 )
-from .audit import get_audit_logger
+from middleware.audit import get_audit_logger
 
 
 class WorkflowEngine:
@@ -214,9 +214,9 @@ class WorkflowEngine:
             error_msg = str(e)
 
             # Try to get workflow_id for logging
-            workflow_id = workflow.workflow_id if 'workflow' in locals() else "unknown"
+            workflow_id = workflow.workflow_id if ('workflow' in locals() and workflow) else "unknown"
 
-            if 'workflow' in locals() and 'context' in locals():
+            if ('workflow' in locals() and workflow) and 'context' in locals():
                 self._log_error(workflow, context, "EXECUTION_ERROR", execution_time)
 
             return WorkflowResponse(

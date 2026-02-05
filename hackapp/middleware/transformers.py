@@ -161,7 +161,7 @@ class OutputBuilder:
         Returns:
             List of InsertionInstruction dictionaries
         """
-        from .models import InsertionInstruction
+        from middleware.models import InsertionInstruction
 
         instructions = []
 
@@ -182,7 +182,9 @@ class OutputBuilder:
                     mode=config.mode,
                     type=config.type,
                     navigation=config.navigation,
-                    label=label
+                    label=label,
+                    click_before=getattr(config, 'click_before', None),
+                    insert_method=getattr(config, 'insert_method', 'type')
                 )
 
                 instructions.append(instruction)

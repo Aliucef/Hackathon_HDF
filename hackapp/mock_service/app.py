@@ -5,7 +5,7 @@ Simulates Voice AI and other external APIs for demo
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from data import get_mock_summary, extract_vital_signs
+from data import get_mock_summary, extract_vital_signs, process_text
 import time
 
 
@@ -158,6 +158,45 @@ def drug_interaction():
         }), 500
 
 
+@app.route('/api/process_text', methods=['POST'])
+def process_text_endpoint():
+    """
+    Mock Speech-to-Text Cleanup Endpoint
+
+    Takes raw speech output and returns cleaned/punctuated text.
+
+    Request:  {"text": "raw speech text here"}
+    Response: {"processed_text": "Raw speech text here.", "original_length": 24, "processing_time_ms": 120}
+    """
+    try:
+        data = request.json
+
+        if not data or 'text' not in data:
+            return jsonify({'error': 'Missing required field: text'}), 400
+
+        raw_text = data['text']
+
+        if len(raw_text) < 3:
+            return jsonify({'error': 'Text too short (minimum 3 characters)'}), 400
+
+        # Simulate processing delay
+        time.sleep(0.1)
+
+        cleaned = process_text(raw_text)
+
+        print(f"✅ Processed text: {len(raw_text)} chars → {len(cleaned)} chars")
+
+        return jsonify({
+            'processed_text': cleaned,
+            'original_length': len(raw_text),
+            'processing_time_ms': 120
+        })
+
+    except Exception as e:
+        print(f"❌ Error in process_text: {e}")
+        return jsonify({'error': 'Internal server error', 'details': str(e)}), 500
+
+
 # Error handlers
 @app.errorhandler(404)
 def not_found(error):
@@ -166,6 +205,7 @@ def not_found(error):
         'available_endpoints': [
             '/api/clinical_summary',
             '/api/drug_interaction',
+            '/api/process_text',
             '/health'
         ]
     }), 404
@@ -186,6 +226,7 @@ def main():
     print("\n📍 Endpoints:")
     print("   • http://localhost:5001/api/clinical_summary")
     print("   • http://localhost:5001/api/drug_interaction")
+    print("   • http://localhost:5001/api/process_text")
     print("   • http://localhost:5001/health")
     print("\n✅ Mock service ready for requests!")
     print("=" * 70 + "\n")
