@@ -173,7 +173,7 @@ async def root():
     """Root endpoint - serves dashboard"""
     dashboard_path = Path(__file__).parent / "static" / "index.html"
     if dashboard_path.exists():
-        return HTMLResponse(content=dashboard_path.read_text(), status_code=200)
+        return HTMLResponse(content=dashboard_path.read_text(encoding='utf-8'), status_code=200)
     else:
         # Fallback if dashboard doesn't exist yet
         return {
@@ -525,6 +525,76 @@ async def get_picker_status(
             "field_name": session["field_name"],
             "coordinates": None
         }
+
+
+@app.post("/api/picker/preview-ocr", tags=["Picker"])
+async def preview_ocr(
+    request: dict,
+    authorization: str = Header(None)
+):
+    """
+    Test OCR capture at coordinates and return screenshot preview
+
+    Request body:
+        {
+            "x": 123,
+            "y": 456,
+            "width": 150,
+            "height": 40
+        }
+
+    Returns:
+        {
+            "status": "success",
+            "image_base64": "...",
+            "ocr_text": "..."
+        }
+    """
+    verify_token(authorization)
+
+    try:
+        import pyautogui
+        import pytesseract
+        import base64
+        from io import BytesIO
+        import re
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=f"Missing dependency: {str(e)}")
+
+    try:
+        x = request.get("x")
+        y = request.get("y")
+        width = request.get("width", 150)
+        height = request.get("height", 40)
+
+        if x is None or y is None:
+            raise HTTPException(status_code=400, detail="Missing x or y coordinates")
+
+        # Take screenshot
+        screenshot = pyautogui.screenshot(region=(x, y, width, height))
+
+        # Convert to base64
+        buffered = BytesIO()
+        screenshot.save(buffered, format="PNG")
+        img_base64 = base64.b64encode(buffered.getvalue()).decode()
+
+        # OCR to extract text
+        ocr_text = pytesseract.image_to_string(screenshot).strip()
+
+        # Extract numbers (same logic as executor)
+        numbers = re.findall(r'\d+', ocr_text)
+        extracted_id = numbers[0] if numbers else None
+
+        return {
+            "status": "success",
+            "image_base64": img_base64,
+            "ocr_text": ocr_text,
+            "extracted_id": extracted_id,
+            "coordinates": {"x": x, "y": y, "width": width, "height": height}
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OCR preview failed: {str(e)}")
 
 
 # ============================================================================

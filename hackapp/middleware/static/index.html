@@ -366,7 +366,35 @@
                         1. Click "Set This Field" button above<br>
                         2. Open DXCare with patient visible<br>
                         3. Press <code>CTRL+ALT+C</code> anywhere<br>
-                        4. Click on the patient ID field
+                        4. Click <strong>directly on the first digit</strong> of the patient ID<br>
+                        <br>
+                        <strong>💡 Tip:</strong> If coordinates are off, click slightly to the left/above where you want. OCR extracts only numbers (e.g., "20001687").
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-top:12px;">
+                    <label class="form-label">OCR Capture Size (Width x Height pixels)</label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="number" id="ocrWidth" value="150" style="width:80px;" placeholder="Width">
+                        <span style="line-height:32px;">x</span>
+                        <input type="number" id="ocrHeight" value="40" style="width:80px;" placeholder="Height">
+                    </div>
+                    <div style="font-size:10px; color:var(--muted); margin-top:4px;">
+                        Adjust if OCR isn't capturing correctly. Default: 150x40 pixels.
+                    </div>
+                </div>
+
+                <!-- OCR Preview -->
+                <div id="ocrPreviewPatient" class="hidden" style="margin-top:16px; padding:12px; background:#fff; border:1px solid var(--line2); border-radius:3px;">
+                    <div style="font-size:11px; font-weight:700; color:var(--title); margin-bottom:8px; text-transform:uppercase;">
+                        📸 OCR Preview
+                    </div>
+                    <img id="ocrPreviewImagePatient" style="border:1px solid var(--line2); max-width:100%; image-rendering:pixelated;">
+                    <div style="margin-top:8px; font-size:11px;">
+                        <div style="color:var(--muted); margin-bottom:4px;"><strong>Raw OCR Text:</strong></div>
+                        <div id="ocrPreviewTextPatient" style="font-family:'Courier New', monospace; background:#f5f5f5; padding:6px; border-radius:2px;"></div>
+                        <div style="color:var(--muted); margin-top:8px; margin-bottom:4px;"><strong>Extracted Patient ID:</strong></div>
+                        <div id="ocrPreviewIdPatient" style="font-family:'Courier New', monospace; background:#e8f7f0; padding:6px; border-radius:2px; color:var(--ok); font-weight:700;"></div>
                     </div>
                 </div>
             </div>
@@ -530,6 +558,11 @@ function startPolling() {
             updateCoordDisplay(activeField, result);
             updateToggleButton(activeField, false);
 
+            // Fetch OCR preview for patient field
+            if (activeField === 'patient') {
+                await fetchOCRPreview(result.x, result.y);
+            }
+
             // Clear session and active field
             pickingSessions[activeField] = null;
             activeField = null;
@@ -592,6 +625,51 @@ function updateCoordDisplay(fieldType, coords) {
     document.getElementById(displayId).textContent = `(${coords.x}, ${coords.y})`;
 }
 
+async function fetchOCRPreview(x, y) {
+    const ocrWidth = parseInt(document.getElementById('ocrWidth').value) || 150;
+    const ocrHeight = parseInt(document.getElementById('ocrHeight').value) || 40;
+
+    try {
+        const response = await fetch(`${API_URL}/api/picker/preview-ocr`, {
+            method: 'POST',
+            headers: {
+                'Authorization': AUTH_TOKEN,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                x: x,
+                y: y,
+                width: ocrWidth,
+                height: ocrHeight
+            })
+        });
+
+        if (!response.ok) {
+            console.error('OCR preview failed');
+            return;
+        }
+
+        const data = await response.json();
+
+        // Display preview
+        document.getElementById('ocrPreviewPatient').classList.remove('hidden');
+        document.getElementById('ocrPreviewImagePatient').src = `data:image/png;base64,${data.image_base64}`;
+        document.getElementById('ocrPreviewTextPatient').textContent = data.ocr_text || '(empty)';
+        document.getElementById('ocrPreviewIdPatient').textContent = data.extracted_id || '❌ No numbers found';
+
+        if (!data.extracted_id) {
+            document.getElementById('ocrPreviewIdPatient').style.background = '#ffe8e8';
+            document.getElementById('ocrPreviewIdPatient').style.color = 'var(--danger)';
+        } else {
+            document.getElementById('ocrPreviewIdPatient').style.background = '#e8f7f0';
+            document.getElementById('ocrPreviewIdPatient').style.color = 'var(--ok)';
+        }
+
+    } catch (error) {
+        console.error('OCR preview error:', error);
+    }
+}
+
 // Save workflow
 async function saveWorkflow() {
     // Validation
@@ -631,6 +709,10 @@ async function saveWorkflow() {
         return;
     }
 
+    // Get OCR capture size
+    const ocrWidth = parseInt(document.getElementById('ocrWidth').value) || 150;
+    const ocrHeight = parseInt(document.getElementById('ocrHeight').value) || 40;
+
     // Build workflow
     const workflow = {
         workflow_id: 'excel_lookup_auto',
@@ -642,11 +724,12 @@ async function saveWorkflow() {
             {
                 step_id: '1',
                 step_type: 'read_coords',
-                name: 'Read patient ID/name from screen',
+                name: 'Read patient ID from screen',
                 x: config.patientCoords.x,
                 y: config.patientCoords.y,
-                width: 200,
-                height: 30,
+                width: ocrWidth,
+                height: ocrHeight,
+                extract_numbers: true,
                 output_variable: 'patient_identifier'
             },
             {
@@ -747,6 +830,9 @@ async function loadExistingWorkflow() {
             if (step.step_type === 'read_coords') {
                 config.patientCoords = { x: step.x, y: step.y };
                 updateCoordDisplay('patient', config.patientCoords);
+                // Load OCR capture size
+                if (step.width) document.getElementById('ocrWidth').value = step.width;
+                if (step.height) document.getElementById('ocrHeight').value = step.height;
             } else if (step.step_type === 'lookup_excel') {
                 config.excelPath = step.file_path;
                 config.searchColumn = step.search_column;

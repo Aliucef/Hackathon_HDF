@@ -98,6 +98,7 @@ class WorkflowExecutor:
             from PIL import Image
             import pytesseract
             import os
+            import re
         except ImportError as e:
             return {
                 "step_id": step["step_id"],
@@ -108,9 +109,10 @@ class WorkflowExecutor:
         try:
             x = step["x"]
             y = step["y"]
-            width = step.get("width", 300)  # Increased from 200
-            height = step.get("height", 50)  # Increased from 30
+            width = step.get("width", 150)  # Smaller width for patient ID
+            height = step.get("height", 40)  # Smaller height
             output_var = step["output_variable"]
+            extract_numbers = step.get("extract_numbers", True)  # New: Extract only numbers
 
             # Small delay to ensure window is ready
             time.sleep(0.2)
@@ -127,7 +129,7 @@ class WorkflowExecutor:
             # OCR to extract text
             text = pytesseract.image_to_string(screenshot).strip()
 
-            print(f"   📝 OCR Result: '{text}'")
+            print(f"   📝 OCR Raw Result: '{text}'")
 
             if not text:
                 return {
@@ -135,6 +137,20 @@ class WorkflowExecutor:
                     "status": "error",
                     "error": f"No text found at coordinates ({x}, {y}). Check ocr_debug.png to see what was captured."
                 }
+
+            # Extract only numbers if requested (for patient IDs)
+            if extract_numbers:
+                # Find first sequence of digits (patient ID)
+                numbers = re.findall(r'\d+', text)
+                if numbers:
+                    text = numbers[0]  # Take first number sequence
+                    print(f"   🔢 Extracted Patient ID: '{text}'")
+                else:
+                    return {
+                        "step_id": step["step_id"],
+                        "status": "error",
+                        "error": f"No numbers found in OCR text: '{text}'. Check ocr_debug.png."
+                    }
 
             # Store in variables
             self.variables[output_var] = text
