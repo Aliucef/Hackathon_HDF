@@ -1,0 +1,23 @@
+# HackApp Agent Dependencies
+# Desktop automation and communication
+
+# Global hotkey listening
+pynput==1.7.6
+
+# UI automation (keyboard/mouse simulation)
+pyautogui==0.9.54
+
+# Clipboard management
+pyperclip==1.8.2
+
+# Window management
+pygetwindow==0.0.9
+
+# HTTP client for middleware communication
+requests==2.31.0
+
+# Data validation
+pydantic==2.5.3
+
+# Configuration
+python-dotenv==1.0.0

@@ -1,0 +1,107 @@
+# Sample Clinical Notes for Demo
+
+## Test Case 1: Pneumonia (Primary Demo)
+Patient presents with persistent cough for 5 days, fever 102°F, chest pain on deep breathing, and difficulty breathing. Physical exam reveals crackles in right lower lung. Chest X-ray shows infiltrates in right lower lobe consistent with bacterial pneumonia. Patient appears acutely ill.
+
+Expected Result:
+- Summary: "Pneumonia with respiratory symptoms and radiological findings consistent with lower respiratory tract infection"
+- ICD-10: J18.9 (Pneumonia, unspecified organism)
+
+---
+
+## Test Case 2: Hypertension
+Patient presents for routine follow-up. Blood pressure readings over past month: 165/98, 158/95, 162/97 mmHg. Patient reports occasional headaches. No chest pain or shortness of breath. Currently not on any antihypertensive medications. Family history positive for hypertension. Diagnosis: Essential hypertension.
+
+Expected Result:
+- Summary: "Essential hypertension without complications"
+- ICD-10: I10 (Essential (primary) hypertension)
+
+---
+
+## Test Case 3: Type 2 Diabetes
+Patient reports increased thirst and frequent urination for past 2 months. Weight loss of 10 lbs despite good appetite. Lab results: Fasting blood glucose 185 mg/dL, HbA1c 8.2%. No history of diabetes. No diabetic complications noted on examination. Diagnosis: Type 2 diabetes mellitus, newly diagnosed.
+
+Expected Result:
+- Summary: "Type 2 diabetes mellitus without complications"
+- ICD-10: E11.9 (Type 2 diabetes mellitus without complications)
+
+---
+
+## Test Case 4: Upper Respiratory Infection
+Patient presents with 3-day history of sore throat, runny nose, nasal congestion, and mild cough. Low-grade fever (99.5°F). No shortness of breath or chest pain. Examination shows erythematous pharynx, no exudates. Lungs clear to auscultation. Likely viral upper respiratory infection.
+
+Expected Result:
+- Summary: "Acute upper respiratory infection, likely viral etiology"
+- ICD-10: J06.9 (Acute upper respiratory infection, unspecified)
+
+---
+
+## Test Case 5: COPD Exacerbation
+Patient with known COPD presents with worsening shortness of breath, increased cough with purulent sputum, and wheezing. Patient reports decreased exercise tolerance over past week. Physical exam shows prolonged expiratory phase, diffuse wheezes bilaterally. Oxygen saturation 88% on room air. Assessment: COPD with acute exacerbation.
+
+Expected Result:
+- Summary: "Chronic obstructive pulmonary disease with acute exacerbation"
+- ICD-10: J44.0 (COPD with acute lower respiratory infection)
+
+---
+
+## Test Case 6: Low Back Pain
+45-year-old patient presents with complaint of low back pain for 2 weeks. Pain described as dull, constant, worse with movement and relieved by rest. No radiation to legs. No bowel or bladder dysfunction. No fever or recent trauma. Examination shows tenderness over L4-L5 region. Straight leg raise test negative. Likely mechanical low back pain.
+
+Expected Result:
+- Summary: "Low back pain, likely musculoskeletal origin"
+- ICD-10: M54.5 (Low back pain)
+
+---
+
+## Test Case 7: Generalized Anxiety Disorder
+Patient reports persistent worry and anxiety for past 6 months. Difficulty concentrating, restlessness, muscle tension, and sleep disturbance. Patient describes feeling "on edge" most days. Symptoms interfere with work and social activities. No panic attacks. No suicidal ideation. Assessment: Generalized anxiety disorder.
+
+Expected Result:
+- Summary: "Generalized anxiety disorder"
+- ICD-10: F41.1 (Generalized anxiety disorder)
+
+---
+
+## Test Case 8: GERD
+Patient complains of heartburn and acid regurgitation, especially after meals and when lying down. Symptoms occurring 3-4 times per week for past 2 months. No dysphagia or weight loss. No alarm symptoms. Denies chest pain. Examination unremarkable. Assessment: Gastroesophageal reflux disease.
+
+Expected Result:
+- Summary: "Gastro-esophageal reflux disease without esophagitis"
+- ICD-10: K21.9 (Gastro-esophageal reflux disease without esophagitis)
+
+---
+
+## Test Case 9: Sepsis (Urgent)
+72-year-old patient presents from nursing home with altered mental status. Fever 103.5°F, heart rate 125 bpm, blood pressure 85/50 mmHg. Patient appears lethargic and confused. Suspected urinary tract infection as source. Blood cultures drawn. Assessment: Sepsis, likely urinary source. Requires immediate intervention.
+
+Expected Result:
+- Summary: "Sepsis, unspecified organism, requires immediate intervention"
+- ICD-10: A41.9 (Sepsis, unspecified organism)
+
+---
+
+## Test Case 10: Fever of Unknown Origin
+Patient presents with fever ranging from 100-102°F for past 5 days. No localizing symptoms. No cough, dysuria, abdominal pain, or skin rash. Patient reports fatigue and mild headache. Examination unremarkable except for temperature of 101.3°F. No obvious source identified. Further workup needed. Assessment: Fever, unspecified.
+
+Expected Result:
+- Summary: "Fever of unknown origin, requires further evaluation"
+- ICD-10: R50.9 (Fever, unspecified)
+
+---
+
+## Quick Test Phrases (For Fast Testing)
+
+Pneumonia: "Patient has cough, fever, and chest infiltrates on X-ray"
+Hypertension: "Blood pressure elevated at 160/95 mmHg"
+Diabetes: "Patient reports increased thirst and glucose is elevated"
+URI: "Patient has sore throat, runny nose, and congestion"
+Back Pain: "Patient complains of low back pain for 2 weeks"
+
+---
+
+**Usage Tips:**
+- Copy the entire clinical note
+- Select it in DXCare simulator
+- Press CTRL+ALT+V
+- Watch the magic happen!

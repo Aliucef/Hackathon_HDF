@@ -1,0 +1,9 @@
+# Mock External Service Dependencies
+# Simulates voice AI and other external APIs
+
+# Web framework
+flask==3.0.0
+flask-cors==4.0.0
+
+# For realistic mock responses
+faker==22.0.0

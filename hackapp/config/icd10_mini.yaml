@@ -1,0 +1,139 @@
+# Mini ICD-10 Catalog
+# Small lookup table of common diagnosis codes for demo purposes
+# Full ICD-10 catalog would have 70,000+ codes
+
+icd10_codes:
+  # Respiratory
+  J18.9:
+    code: "J18.9"
+    label: "Pneumonia, unspecified organism"
+    category: "Respiratory"
+
+  J06.9:
+    code: "J06.9"
+    label: "Acute upper respiratory infection, unspecified"
+    category: "Respiratory"
+
+  J44.0:
+    code: "J44.0"
+    label: "Chronic obstructive pulmonary disease with acute lower respiratory infection"
+    category: "Respiratory"
+
+  # Circulatory
+  I10:
+    code: "I10"
+    label: "Essential (primary) hypertension"
+    category: "Circulatory"
+
+  I25.10:
+    code: "I25.10"
+    label: "Atherosclerotic heart disease of native coronary artery without angina pectoris"
+    category: "Circulatory"
+
+  I48.91:
+    code: "I48.91"
+    label: "Unspecified atrial fibrillation"
+    category: "Circulatory"
+
+  # Endocrine
+  E11.9:
+    code: "E11.9"
+    label: "Type 2 diabetes mellitus without complications"
+    category: "Endocrine"
+
+  E11.65:
+    code: "E11.65"
+    label: "Type 2 diabetes mellitus with hyperglycemia"
+    category: "Endocrine"
+
+  E78.5:
+    code: "E78.5"
+    label: "Hyperlipidemia, unspecified"
+    category: "Endocrine"
+
+  # Infectious
+  A41.9:
+    code: "A41.9"
+    label: "Sepsis, unspecified organism"
+    category: "Infectious"
+
+  B34.9:
+    code: "B34.9"
+    label: "Viral infection, unspecified"
+    category: "Infectious"
+
+  # Digestive
+  K21.9:
+    code: "K21.9"
+    label: "Gastro-esophageal reflux disease without esophagitis"
+    category: "Digestive"
+
+  K80.20:
+    code: "K80.20"
+    label: "Calculus of gallbladder without cholecystitis without obstruction"
+    category: "Digestive"
+
+  # Musculoskeletal
+  M25.511:
+    code: "M25.511"
+    label: "Pain in right shoulder"
+    category: "Musculoskeletal"
+
+  M54.5:
+    code: "M54.5"
+    label: "Low back pain"
+    category: "Musculoskeletal"
+
+  # Mental/Behavioral
+  F41.1:
+    code: "F41.1"
+    label: "Generalized anxiety disorder"
+    category: "Mental"
+
+  F32.9:
+    code: "F32.9"
+    label: "Major depressive disorder, single episode, unspecified"
+    category: "Mental"
+
+  # Symptoms/Signs
+  R50.9:
+    code: "R50.9"
+    label: "Fever, unspecified"
+    category: "Symptoms"
+
+  R69:
+    code: "R69"
+    label: "Illness, unspecified"
+    category: "Symptoms"
+
+  R07.9:
+    code: "R07.9"
+    label: "Chest pain, unspecified"
+    category: "Symptoms"
+
+  # Injury
+  S06.0X0A:
+    code: "S06.0X0A"
+    label: "Concussion without loss of consciousness, initial encounter"
+    category: "Injury"
+
+# Categories for reference
+categories:
+  - name: "Respiratory"
+    range: "J00-J99"
+  - name: "Circulatory"
+    range: "I00-I99"
+  - name: "Endocrine"
+    range: "E00-E89"
+  - name: "Infectious"
+    range: "A00-B99"
+  - name: "Digestive"
+    range: "K00-K95"
+  - name: "Musculoskeletal"
+    range: "M00-M99"
+  - name: "Mental"
+    range: "F01-F99"
+  - name: "Symptoms"
+    range: "R00-R99"
+  - name: "Injury"
+    range: "S00-T88"

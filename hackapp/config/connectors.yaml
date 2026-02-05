@@ -1,0 +1,65 @@
+# HackApp Connector Configurations
+# External service connection settings
+
+connectors:
+  voice_ai:
+    type: rest_api
+    name: "Voice AI Clinical Summarization Service"
+    base_url: "http://localhost:5001"
+
+    auth:
+      type: none  # For demo; use bearer_token in production
+      # type: bearer_token
+      # token_env: VOICE_AI_TOKEN
+
+    endpoints:
+      summarize: "/api/clinical_summary"
+
+    timeout: 30
+
+    retry_policy:
+      max_retries: 2
+      backoff: exponential
+      initial_delay: 1.0
+
+    headers:
+      Content-Type: "application/json"
+      User-Agent: "HackApp/1.0"
+
+  drug_checker:
+    type: rest_api
+    name: "Drug Interaction Checker Service"
+    base_url: "http://localhost:5002"
+
+    auth:
+      type: api_key
+      header: "X-API-Key"
+      token_env: DRUG_CHECKER_API_KEY
+
+    endpoints:
+      check: "/api/check_interactions"
+
+    timeout: 20
+
+    retry_policy:
+      max_retries: 3
+      backoff: exponential
+      initial_delay: 0.5
+
+  # Example: Real external service (disabled)
+  # openai_api:
+  #   type: rest_api
+  #   name: "OpenAI GPT API"
+  #   base_url: "https://api.openai.com/v1"
+  #
+  #   auth:
+  #     type: bearer_token
+  #     token_env: OPENAI_API_KEY
+  #
+  #   endpoints:
+  #     chat: "/chat/completions"
+  #
+  #   timeout: 60
+  #
+  #   headers:
+  #     Content-Type: "application/json"
