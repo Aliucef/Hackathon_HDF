@@ -61,8 +61,8 @@
         "step_id": "1",
         "step_type": "read_coords",
         "name": "Read patient ID from screen",
-        "x": 224,
-        "y": 144,
+        "x": 213,
+        "y": 138,
         "width": 200,
         "height": 40,
         "extract_numbers": true,
@@ -92,13 +92,13 @@
         "step_id": "3",
         "step_type": "write_coords",
         "name": "Paste results to field",
-        "x": 554,
-        "y": 372,
+        "x": 573,
+        "y": 505,
         "content_template": "Patient ID: {patient_data.Patient ID}, Last Name: {patient_data.Last Name}, Age: {patient_data.Age}, Gender: {patient_data.Gender}, Diagnosis Text: {patient_data.Diagnosis Text}, ICD-10 Code: {patient_data.ICD-10 Code}, Admission Date: {patient_data.Admission Date}, Attending Physician: {patient_data.Attending Physician}, Department: {patient_data.Department}",
         "insert_method": "paste"
       }
     ],
-    "created_at": "2026-02-05T23:59:49.875407",
-    "updated_at": "2026-02-05T23:59:49.875757"
+    "created_at": "2026-02-06T00:08:03.572337",
+    "updated_at": "2026-02-06T00:08:03.572681"
   }
 ]

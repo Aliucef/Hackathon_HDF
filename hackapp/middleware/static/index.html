@@ -320,15 +320,16 @@
             <div class="sectionBody">
                 <div class="form-row">
                     <label class="form-label">Excel File Path (Full Path Required)</label>
-                    <div style="display:flex; align-items:center;">
-                        <input type="text" id="excelPath" placeholder="C:\Users\YourName\Desktop\patient_data.xlsx">
-                        <button class="btn browse" onclick="browseExcel()">Browse</button>
-                    </div>
-                    <div style="font-size:10px; color:var(--muted); margin-top:4px;">
-                        Type or paste the full file path. Browse button only fills the filename - you must add the folder path.
+                    <input type="text" id="excelPath" placeholder="C:\Users\YourName\Desktop\patient_data.xlsx">
+                    <div style="font-size:10px; color:#e89f3c; margin-top:6px; background:#fff9e6; padding:8px; border:1px solid #f5d875; border-radius:3px;">
+                        <strong>⚠️ How to get full path:</strong><br>
+                        1. Right-click your Excel file → <strong>Properties</strong><br>
+                        2. Copy the <strong>Location</strong> path<br>
+                        3. Paste here and add <strong>\filename.xlsx</strong> at the end<br>
+                        <br>
+                        Example: <code>C:\Users\Aliuc\Desktop\patient_data.xlsx</code>
                     </div>
                 </div>
-                <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleFileSelect(event)">
             </div>
         </div>
 
@@ -381,6 +382,18 @@
                     </div>
                     <div style="font-size:10px; color:var(--muted); margin-top:4px;">
                         Adjust if OCR isn't capturing correctly. Default: 150x40 pixels.
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-top:12px;">
+                    <label class="form-label">Coordinate Offset Adjustment (X, Y pixels)</label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="number" id="coordOffsetX" value="0" style="width:80px;" placeholder="X offset">
+                        <span style="line-height:32px;">,</span>
+                        <input type="number" id="coordOffsetY" value="0" style="width:80px;" placeholder="Y offset">
+                    </div>
+                    <div style="font-size:10px; color:var(--muted); margin-top:4px;">
+                        Fix DPI scaling issues. Try negative values if OCR is shifted (e.g., -50, -20). Default: 0, 0.
                     </div>
                 </div>
 
@@ -482,20 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startPolling();
 });
 
-// Excel file selection
-function browseExcel() {
-    document.getElementById('excelFileInput').click();
-}
-
-function handleFileSelect(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const filename = file.name;
-        document.getElementById('excelPath').value = filename;
-
-        showAlert('info', `File selected: ${filename}. Now edit the path field to add the full folder path (e.g., C:\\Users\\YourName\\Desktop\\${filename})`);
-    }
-}
+// (File browsing removed - browser security prevents full path access)
 
 // Toggle field for coordinate picking
 function toggleField(fieldType) {
@@ -628,6 +628,8 @@ function updateCoordDisplay(fieldType, coords) {
 async function fetchOCRPreview(x, y) {
     const ocrWidth = parseInt(document.getElementById('ocrWidth').value) || 150;
     const ocrHeight = parseInt(document.getElementById('ocrHeight').value) || 40;
+    const offsetX = parseInt(document.getElementById('coordOffsetX').value) || 0;
+    const offsetY = parseInt(document.getElementById('coordOffsetY').value) || 0;
 
     try {
         const response = await fetch(`${API_URL}/api/picker/preview-ocr`, {
@@ -637,8 +639,8 @@ async function fetchOCRPreview(x, y) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                x: x,
-                y: y,
+                x: x + offsetX,
+                y: y + offsetY,
                 width: ocrWidth,
                 height: ocrHeight
             })
@@ -713,6 +715,10 @@ async function saveWorkflow() {
     const ocrWidth = parseInt(document.getElementById('ocrWidth').value) || 150;
     const ocrHeight = parseInt(document.getElementById('ocrHeight').value) || 40;
 
+    // Get coordinate offsets
+    const offsetX = parseInt(document.getElementById('coordOffsetX').value) || 0;
+    const offsetY = parseInt(document.getElementById('coordOffsetY').value) || 0;
+
     // Build workflow
     const workflow = {
         workflow_id: 'excel_lookup_auto',
@@ -725,8 +731,8 @@ async function saveWorkflow() {
                 step_id: '1',
                 step_type: 'read_coords',
                 name: 'Read patient ID from screen',
-                x: config.patientCoords.x,
-                y: config.patientCoords.y,
+                x: config.patientCoords.x + offsetX,
+                y: config.patientCoords.y + offsetY,
                 width: ocrWidth,
                 height: ocrHeight,
                 extract_numbers: true,
