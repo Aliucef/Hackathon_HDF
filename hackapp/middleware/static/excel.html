@@ -420,7 +420,7 @@
             <div class="sectionBody">
                 <div class="form-row">
                     <label class="form-label">
-                        <input type="checkbox" id="enableLLM" style="width:auto; margin-right:6px;">
+                        <input type="checkbox" id="enableLLM" checked style="width:auto; margin-right:6px;">
                         Enable Smart Formatting with Groq AI (Llama 3.3)
                     </label>
                     <div style="font-size:10px; color:var(--muted); margin-top:4px;">
@@ -486,7 +486,7 @@ let config = {
     patientCoords: null,
     outputFields: [],  // Array of {id, name, description, coords}
     executeHotkey: 'CTRL+ALT+E',
-    enableLLM: false
+    enableLLM: true
 };
 
 let pickingSessions = {
