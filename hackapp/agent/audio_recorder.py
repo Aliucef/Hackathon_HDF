@@ -9,6 +9,14 @@ from typing import Optional, Callable
 import sys
 import types
 
+# Import recording indicator for visual feedback
+try:
+    from recording_indicator import show_recording_indicator, hide_recording_indicator
+    INDICATOR_AVAILABLE = True
+except ImportError:
+    INDICATOR_AVAILABLE = False
+    print("⚠️  Recording indicator not available")
+
 # Stub out modules for Python 3.13+ compatibility
 for _mod_name in ("aifc", "audioop"):
     if _mod_name not in sys.modules:
@@ -55,6 +63,13 @@ class AudioRecorder:
 
         print("   🔴 Recording started...")
 
+        # Show visual indicator
+        if INDICATOR_AVAILABLE:
+            try:
+                show_recording_indicator()
+            except Exception as e:
+                print(f"   ⚠️  Could not show indicator: {e}")
+
         try:
             self.stream = sd.InputStream(
                 samplerate=self.sample_rate,
@@ -68,6 +83,12 @@ class AudioRecorder:
         except Exception as e:
             print(f"   ❌ Failed to start recording: {e}")
             self.is_recording = False
+            # Hide indicator if start failed
+            if INDICATOR_AVAILABLE:
+                try:
+                    hide_recording_indicator()
+                except:
+                    pass
             return False
 
     def stop_recording(self):
@@ -77,6 +98,13 @@ class AudioRecorder:
             return False
 
         self.is_recording = False
+
+        # Hide visual indicator
+        if INDICATOR_AVAILABLE:
+            try:
+                hide_recording_indicator()
+            except Exception as e:
+                print(f"   ⚠️  Could not hide indicator: {e}")
 
         if self.stream:
             self.stream.stop()
