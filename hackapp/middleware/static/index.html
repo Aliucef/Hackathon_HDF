@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HackApp - Excel Automation</title>
+    <title>HackApp - Automation Dashboard</title>
     <style>
         :root{
             --bg: #d9e0ea;
@@ -11,12 +11,17 @@
             --panel2: #eef3fb;
             --line: #9fb0c6;
             --line2:#b7c5d8;
+            --tab: #cdd8e8;
+            --tabActive: #5e7fb7;
+            --tabText: #0c1f3a;
+            --tabActiveText: #fff;
+            --bar: #c5d2e5;
+            --bar2:#b9c7dc;
             --title: #2f4d79;
             --shadow: rgba(0,0,0,.08);
             --accent: #2f72d6;
             --danger:#c74141;
             --ok:#2aa86c;
-            --warning:#e89f3c;
             --muted:#6b7a90;
             --font: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         }
@@ -24,1213 +29,638 @@
         *{ box-sizing:border-box; margin:0; padding:0; }
 
         body{
-            font-family:var(--font);
-            background:#f2f4f7;
-            color:#17212b;
+            font-family: var(--font);
+            background: #f2f4f7;
+            color: #17212b;
+            min-height: 100vh;
+            padding: 20px;
         }
 
         .app{
-            width:min(900px, 96vw);
-            margin:20px auto;
-            background:var(--bg);
-            border:1px solid var(--line);
-            box-shadow:0 12px 28px var(--shadow);
+            max-width: 1250px;
+            margin: 0 auto;
+            background: var(--bg);
+            border: 1px solid var(--line);
+            box-shadow: 0 12px 28px var(--shadow);
+            overflow: hidden;
         }
 
         .topbar{
-            background:linear-gradient(#d7e0ee, #c4d1e6);
-            border-bottom:1px solid var(--line);
-            padding:14px 18px;
+            background: linear-gradient(#d7e0ee, #c4d1e6);
+            border-bottom: 1px solid var(--line);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
         }
 
-        .topbar h1{
-            font-size:18px;
-            font-weight:700;
-            color:var(--title);
+        .topbar .left{
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
         }
 
-        .subtitle{
-            font-size:11px;
-            color:var(--muted);
-            margin-top:3px;
+        .topbar .right{
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .pill{
+            background: #f7f9fd;
+            border: 1px solid var(--line2);
+            padding: 4px 12px;
+            border-radius: 3px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+            white-space: nowrap;
+            font-size: 12px;
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .pill strong{
+            color: #233b5e;
+            font-weight: 700;
+        }
+
+        .logo{
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--title);
+            letter-spacing: -0.5px;
+        }
+
+        .tabbar{
+            background: linear-gradient(#d3dded,#c2cfe4);
+            border-bottom: 1px solid var(--line);
+            padding: 8px 12px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            overflow-x: auto;
+        }
+
+        .tab{
+            background: var(--tab);
+            border: 1px solid var(--line2);
+            padding: 6px 14px;
+            border-radius: 3px 3px 0 0;
+            color: var(--tabText);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
+            transition: all 0.15s;
+        }
+
+        .tab.active{
+            background: var(--tabActive);
+            color: var(--tabActiveText);
+            border-color: #4f6ea6;
+            font-weight: 700;
         }
 
         .content{
-            padding:20px;
-            background:var(--panel2);
-        }
-
-        .section{
-            background:var(--panel);
-            border:1px solid var(--line2);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
-            margin-bottom:16px;
+            padding: 16px;
+            background: var(--panel2);
+            min-height: 500px;
         }
 
         .sectionHeader{
-            background:linear-gradient(#cfd9ea,#b8c7de);
-            border-bottom:1px solid var(--line2);
-            padding:10px 14px;
-            font-size:13px;
-            font-weight:700;
-            color:var(--title);
+            background: linear-gradient(#cfd9ea,#b8c7de);
+            border: 1px solid var(--line2);
+            border-radius: 3px 3px 0 0;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--title);
+            margin-bottom: -1px;
         }
 
-        .sectionBody{
-            padding:16px;
-            background:var(--panel2);
+        .features{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 16px;
+            margin-top: 0;
         }
 
-        .form-row{
-            margin-bottom:14px;
+        .feature-card{
+            background: var(--panel);
+            border: 1px solid var(--line2);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
         }
 
-        .form-label{
-            font-size:11px;
-            font-weight:700;
-            color:var(--title);
-            margin-bottom:5px;
-            display:block;
-            text-transform:uppercase;
-            letter-spacing:0.3px;
+        .feature-card:hover{
+            background: #f2f6fc;
+            border-color: var(--accent);
+            box-shadow: 0 4px 12px var(--shadow);
         }
 
-        input, select{
-            font: 12px/1.35 var(--font);
-            width:100%;
-            border:1px solid var(--line2);
-            background:#fff;
-            border-radius:2px;
-            padding:8px;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,.05);
+        .feature-header{
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 12px;
         }
 
-        .btn{
-            background:#f7f9fd;
-            border:1px solid var(--line2);
-            padding:8px 16px;
-            border-radius:3px;
-            font-size:12px;
-            color:var(--title);
-            cursor:pointer;
+        .feature-icon{
+            width: 52px;
+            height: 52px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            flex-shrink: 0;
+            border: 1px solid var(--line2);
             box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
-            font-weight:600;
-            display:inline-block;
         }
 
-        .btn:hover{ background:#fff; }
-
-        .btn.primary{
-            background:var(--accent);
-            color:white;
-            border-color:var(--accent);
+        .feature-icon.excel{
+            background: linear-gradient(135deg, #2aa86c, #23915c);
         }
 
-        .btn.ok{
-            background:var(--ok);
-            color:white;
-            border-color:var(--ok);
-            font-size:14px;
-            padding:10px 24px;
+        .feature-icon.coming{
+            background: linear-gradient(135deg, #92a1b5, #7a8a9e);
         }
 
-        .btn.browse{
-            background:#f7f9fd;
-            padding:6px 12px;
-            font-size:11px;
-            margin-left:8px;
+        .feature-title{
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--title);
+            margin-bottom: 4px;
         }
 
-        .btn:disabled{
-            opacity:0.5;
-            cursor:not-allowed;
+        .feature-badge{
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 2px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border: 1px solid;
         }
 
-        .coordBox{
-            background:#fff;
-            border:1px solid var(--line2);
-            padding:12px;
-            border-radius:3px;
+        .badge-active{
+            background: #e8f5f0;
+            border-color: #7dc4a5;
+            color: #1e7045;
         }
 
-        .coordStatus{
-            display:flex;
-            align-items:center;
-            gap:10px;
-            margin-bottom:10px;
-            flex-wrap:wrap;
+        .badge-coming{
+            background: #ececf0;
+            border-color: #b8c1ce;
+            color: var(--muted);
         }
 
-        .coordStatus .btn{
-            font-size:11px;
-            padding:6px 12px;
+        .feature-description{
+            font-size: 12px;
+            line-height: 1.5;
+            color: #3d4f66;
+            margin-bottom: 14px;
         }
 
-        .coordStatus .label{
-            font-size:11px;
-            font-weight:600;
-            color:var(--muted);
-            text-transform:uppercase;
-            letter-spacing:0.3px;
+        .feature-footer{
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid var(--line2);
+            font-size: 11px;
+            color: var(--muted);
         }
 
-        .coordStatus .value{
-            font-size:13px;
-            font-weight:700;
-            font-family:'Courier New', monospace;
+        .stats{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
         }
 
-        .coordStatus .value.unset{
-            color:var(--danger);
+        .stat-card{
+            background: #f7f9fd;
+            border: 1px solid var(--line2);
+            border-radius: 3px;
+            padding: 16px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
         }
 
-        .coordStatus .value.set{
-            color:var(--ok);
+        .stat-label{
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            font-weight: 600;
         }
 
-        .coordStatus .value.waiting{
-            color:var(--warning);
+        .stat-value{
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--title);
         }
 
-        .instruction{
-            background:#fff9e6;
-            border:1px solid #f5d875;
-            padding:10px 12px;
-            border-radius:3px;
-            font-size:11px;
-            line-height:1.5;
-            color:#6b5200;
-            margin-top:10px;
+        .stat-detail{
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 4px;
         }
 
-        .instruction strong{
-            font-weight:700;
-            color:#4a3600;
+        .statusbar{
+            height: 28px;
+            background: linear-gradient(#d7e0ee,#c4d1e6);
+            border-top: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-size: 11px;
+            color: #2c3f5d;
         }
 
-        .instruction code{
-            background:#fff;
-            padding:2px 6px;
-            border:1px solid #e6d054;
-            border-radius:2px;
-            font-family:'Courier New', monospace;
-            font-size:11px;
+        .disabled-overlay{
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(217, 224, 234, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
         }
 
-        .alert{
-            padding:12px;
-            border-radius:3px;
-            margin-bottom:16px;
-            font-size:12px;
-            border:1px solid;
+        .feature-card.disabled:hover .disabled-overlay{
+            opacity: 1;
         }
 
-        .alert.error{
-            background:#ffe8e8;
-            border-color:var(--danger);
-            color:#8b0000;
+        .feature-card.disabled{
+            cursor: not-allowed;
+            opacity: 0.7;
         }
 
-        .alert.success{
-            background:#e8f7f0;
-            border-color:var(--ok);
-            color:#0d5c3a;
-        }
-
-        .alert.info{
-            background:#e8f2ff;
-            border-color:var(--accent);
-            color:#0d4488;
-        }
-
-        .hidden{
-            display:none !important;
-        }
-
-        .hotkey-badge{
-            display:inline-block;
-            background:var(--accent);
-            color:white;
-            padding:3px 8px;
-            border-radius:3px;
-            font-size:11px;
-            font-weight:700;
-            font-family:'Courier New', monospace;
-            letter-spacing:0.5px;
-        }
-
-        .status-dot{
-            display:inline-block;
-            width:8px;
-            height:8px;
-            border-radius:50%;
-            margin-right:6px;
-        }
-
-        .status-dot.waiting{
-            background:var(--warning);
-            animation:pulse 1.5s infinite;
-        }
-
-        .status-dot.set{
-            background:var(--ok);
-        }
-
-        .status-dot.unset{
-            background:var(--danger);
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity:1; }
-            50% { opacity:0.4; }
-        }
-
-        .actions{
-            margin-top:20px;
-            padding-top:20px;
-            border-top:1px solid var(--line2);
-            text-align:center;
+        @media (max-width: 768px){
+            .features{ grid-template-columns: 1fr; }
+            .stats{ grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
 <div class="app">
+    <!-- TOP BAR -->
     <div class="topbar">
-        <h1>HackApp - Excel Automation</h1>
-        <div class="subtitle">Configure workflow, pick coordinates with hotkey, execute from DXCare</div>
+        <div class="left">
+            <div class="logo">Clinical Assistant</div>
+            <div class="pill">
+                <strong>Hospital:</strong>
+                <span>Hôtel Dieu de France</span>
+            </div>
+            <div class="pill">
+                <strong>Version:</strong>
+                <span>1.0</span>
+            </div>
+        </div>
+
+        <div class="right">
+            <div class="pill" id="agentStatusPill">
+                <strong>Assistant:</strong>
+                <span id="agentStatusText" style="color: var(--muted);">●</span>
+                <span id="agentStatusLabel">Checking...</span>
+            </div>
+            <button id="agentToggleBtn" onclick="toggleAgent()" style="
+                background: var(--accent);
+                color: white;
+                border: 1px solid var(--line2);
+                padding: 4px 12px;
+                border-radius: 3px;
+                font-size: 12px;
+                font-weight: 600;
+                cursor: pointer;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
+            ">
+                Loading...
+            </button>
+        </div>
     </div>
 
+    <!-- TABS -->
+    <div class="tabbar">
+        <div class="tab active">Home</div>
+        <div class="tab" onclick="openFeature('excel')">Patient Data Lookup</div>
+        <div class="tab">External Systems</div>
+        <div class="tab">Reports</div>
+        <div class="tab">Settings</div>
+    </div>
+
+    <!-- MAIN CONTENT -->
     <div class="content">
-        <!-- Agent Status -->
-        <div class="section">
-            <div class="sectionHeader">Agent Status</div>
-            <div class="sectionBody">
-                <div id="agentStatus" class="alert info">
-                    <strong>Note:</strong> Make sure the HackApp Agent is running in the background.
-                    <br>The agent listens for <code class="hotkey-badge">CTRL+ALT+C</code> (coordinate picker)
-                    and your custom execution hotkey.
-                </div>
+        <!-- Stats Section -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Active Tools</div>
+                <div class="stat-value" id="activeFeatures">1</div>
+                <div class="stat-detail">Ready to use</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Workflows Configured</div>
+                <div class="stat-value" id="workflowsCount">0</div>
+                <div class="stat-detail">Automated processes</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Smart Formatting</div>
+                <div class="stat-value">Enabled</div>
+                <div class="stat-detail">AI-powered assistance</div>
             </div>
         </div>
 
-        <!-- Step 1: Excel File -->
-        <div class="section">
-            <div class="sectionHeader">1. Excel File</div>
-            <div class="sectionBody">
-                <div class="form-row">
-                    <label class="form-label">Excel File</label>
-                    <div style="display:flex; gap:8px; margin-bottom:8px;">
-                        <input type="text" id="excelPath" placeholder="Click Browse to select Excel file" readonly style="flex:1; background:#f5f5f5;">
-                        <button class="btn browse" onclick="document.getElementById('excelFileInput').click()">
-                            📁 Browse
-                        </button>
-                        <button class="btn primary" id="loadColumnsBtn" onclick="loadExcelColumns()" disabled>
-                            Load Columns
-                        </button>
-                    </div>
-                    <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display:none;" onchange="handleExcelUpload(event)">
-                    <div style="font-size:10px; color:var(--muted);">
-                        Browse for your Excel file. It will be uploaded to the server for processing.
-                    </div>
-                </div>
-
-                <div id="excelStatus" class="hidden" style="margin-top:8px; padding:8px; border-radius:3px; font-size:11px;"></div>
-            </div>
+        <!-- Features Section -->
+        <div class="sectionHeader">
+            Available Clinical Tools
         </div>
 
-        <!-- Step 2: Column Configuration -->
-        <div class="section">
-            <div class="sectionHeader">2. Column Configuration</div>
-            <div class="sectionBody" id="columnConfigSection">
-                <div style="text-align:center; padding:20px; color:var(--muted); font-size:12px;">
-                    📋 Load Excel file first to see available columns
+        <div class="features">
+            <!-- Excel Automation -->
+            <div class="feature-card" onclick="openFeature('excel')">
+                <div class="feature-header">
+                    <div class="feature-icon excel">📊</div>
+                    <div style="flex: 1;">
+                        <div class="feature-title">Patient Data Lookup</div>
+                        <span class="feature-badge badge-active">Available</span>
+                    </div>
+                </div>
+
+                <p class="feature-description">
+                    Automatically retrieve patient information from Excel files and populate DXCare fields.
+                    Simply press a keyboard shortcut, and the system will read the patient ID, find the data,
+                    and fill in the appropriate fields for you.
+                </p>
+
+                <div class="feature-footer">
+                    Fast • Accurate • Keyboard shortcuts • Multiple fields supported
                 </div>
             </div>
-        </div>
 
-        <!-- Step 3: Patient Name/ID Location -->
-        <div class="section">
-            <div class="sectionHeader">3. Patient ID/Name Location (OCR)</div>
-            <div class="sectionBody">
-                <div class="coordBox">
-                    <div class="coordStatus">
-                        <span class="status-dot unset" id="patientDot"></span>
-                        <span class="label">Coordinates:</span>
-                        <span class="value unset" id="patientCoordDisplay">Not Set</span>
-                        <button class="btn primary" id="patientToggle" onclick="toggleField('patient')" style="margin-left:auto;">
-                            Set This Field
-                        </button>
-                    </div>
-
-                    <div class="instruction">
-                        <strong>To set coordinates:</strong><br>
-                        1. Click "Set This Field" button above<br>
-                        2. Open DXCare with patient visible<br>
-                        3. Press <code>CTRL+ALT+C</code> anywhere<br>
-                        4. Click <strong>directly on the first digit</strong> of the patient ID<br>
-                        <br>
-                        <strong>💡 Tip:</strong> If coordinates are off, click slightly to the left/above where you want. OCR extracts only numbers (e.g., "20001687").
+            <!-- API Integration (Coming Soon) -->
+            <div class="feature-card disabled">
+                <div class="feature-header">
+                    <div class="feature-icon coming">🌐</div>
+                    <div style="flex: 1;">
+                        <div class="feature-title">External Database Access</div>
+                        <span class="feature-badge badge-coming">Coming Soon</span>
                     </div>
                 </div>
 
-                <div class="form-row" style="margin-top:12px;">
-                    <label class="form-label">OCR Capture Size (Width x Height pixels)</label>
-                    <div style="display:flex; gap:8px;">
-                        <input type="number" id="ocrWidth" value="150" style="width:80px;" placeholder="Width">
-                        <span style="line-height:32px;">x</span>
-                        <input type="number" id="ocrHeight" value="40" style="width:80px;" placeholder="Height">
+                <p class="feature-description">
+                    Connect to external medical databases and retrieve patient records in real-time.
+                    Secure connections ensure patient data remains protected while providing instant access
+                    to the information you need.
+                </p>
+
+                <div class="feature-footer">
+                    Secure • Real-time • Reliable • Multi-source support
+                </div>
+
+                <div class="disabled-overlay">
+                    <div style="text-align:center;">
+                        <div style="font-size:42px; margin-bottom:6px;">🚧</div>
+                        <div style="font-weight:700; color: var(--muted);">Coming Soon</div>
                     </div>
-                    <div style="font-size:10px; color:var(--muted); margin-top:4px;">
-                        Adjust if OCR isn't capturing correctly. Default: 150x40 pixels.
+                </div>
+            </div>
+
+            <!-- Database Lookup (Coming Soon) -->
+            <div class="feature-card disabled">
+                <div class="feature-header">
+                    <div class="feature-icon coming">🗄️</div>
+                    <div style="flex: 1;">
+                        <div class="feature-title">Advanced Reports</div>
+                        <span class="feature-badge badge-coming">Coming Soon</span>
                     </div>
                 </div>
 
-                <div class="form-row" style="margin-top:12px;">
-                    <label class="form-label">Coordinate Offset Adjustment (X, Y pixels)</label>
-                    <div style="display:flex; gap:8px;">
-                        <input type="number" id="coordOffsetX" value="0" style="width:80px;" placeholder="X offset">
-                        <span style="line-height:32px;">,</span>
-                        <input type="number" id="coordOffsetY" value="0" style="width:80px;" placeholder="Y offset">
-                    </div>
-                    <div style="font-size:10px; color:var(--muted); margin-top:4px;">
-                        Fix DPI scaling issues. Try negative values if OCR is shifted (e.g., -50, -20). Default: 0, 0.
-                    </div>
+                <p class="feature-description">
+                    Generate comprehensive patient reports with a single click. Access historical data,
+                    lab results, and clinical notes organized in an easy-to-read format for quick
+                    decision making.
+                </p>
+
+                <div class="feature-footer">
+                    Quick access • Organized data • Historical records • Custom formats
                 </div>
 
-                <!-- OCR Preview -->
-                <div id="ocrPreviewPatient" class="hidden" style="margin-top:16px; padding:12px; background:#fff; border:1px solid var(--line2); border-radius:3px;">
-                    <div style="font-size:11px; font-weight:700; color:var(--title); margin-bottom:8px; text-transform:uppercase;">
-                        📸 OCR Preview
-                    </div>
-                    <img id="ocrPreviewImagePatient" style="border:1px solid var(--line2); max-width:100%; image-rendering:pixelated;">
-                    <div style="margin-top:8px; font-size:11px;">
-                        <div style="color:var(--muted); margin-bottom:4px;"><strong>Raw OCR Text:</strong></div>
-                        <div id="ocrPreviewTextPatient" style="font-family:'Courier New', monospace; background:#f5f5f5; padding:6px; border-radius:2px;"></div>
-                        <div style="color:var(--muted); margin-top:8px; margin-bottom:4px;"><strong>Extracted Patient ID:</strong></div>
-                        <div id="ocrPreviewIdPatient" style="font-family:'Courier New', monospace; background:#e8f7f0; padding:6px; border-radius:2px; color:var(--ok); font-weight:700;"></div>
+                <div class="disabled-overlay">
+                    <div style="text-align:center;">
+                        <div style="font-size:42px; margin-bottom:6px;">🚧</div>
+                        <div style="font-weight:700; color: var(--muted);">Coming Soon</div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Step 4: LLM Configuration -->
-        <div class="section">
-            <div class="sectionHeader">4. LLM Data Formatting (Optional)</div>
-            <div class="sectionBody">
-                <div class="form-row">
-                    <label class="form-label">
-                        <input type="checkbox" id="enableLLM" style="width:auto; margin-right:6px;">
-                        Enable Smart Formatting with Groq AI (Llama 3.3)
-                    </label>
-                    <div style="font-size:10px; color:var(--muted); margin-top:4px;">
-                        🤖 LLM will intelligently format Excel data for each field based on descriptions.<br>
-                        📝 Make sure to provide clear field descriptions for best results.<br>
-                        ⚡ Powered by Groq - blazing fast inference!
-                    </div>
-                </div>
-            </div>
+    <!-- STATUS BAR -->
+    <div class="statusbar">
+        <div class="left">
+            <span>Clinical Assistant v1.0</span>
+            <span style="margin-left: 12px;">•</span>
+            <span style="margin-left: 12px;">Ready to assist with your clinical workflow</span>
         </div>
-
-        <!-- Step 5: Output Fields Configuration -->
-        <div class="section">
-            <div class="sectionHeader">5. Output Fields (Where to Paste Data)</div>
-            <div class="sectionBody">
-                <div id="outputFieldsList"></div>
-
-                <button class="btn primary" onclick="addOutputField()" style="margin-top:12px;">
-                    + Add Output Field
-                </button>
-            </div>
-        </div>
-
-        <!-- Step 6: Execution Hotkey -->
-        <div class="section">
-            <div class="sectionHeader">6. Execution Hotkey</div>
-            <div class="sectionBody">
-                <div class="form-row">
-                    <label class="form-label">Choose Hotkey to Execute Workflow</label>
-                    <input type="text" id="executeHotkey" placeholder="e.g., CTRL+ALT+E or CTRL+ALT+X" value="CTRL+ALT+E">
-                    <div style="font-size:10px; color:var(--muted); margin-top:4px;">
-                        Press this hotkey in DXCare to trigger the workflow (OCR → Excel → Paste)
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Save & Execute -->
-        <div class="actions">
-            <button class="btn ok" onclick="saveWorkflow()" id="saveBtn">
-                💾 Save Workflow Configuration
-            </button>
-
-            <div style="margin-top:16px; font-size:12px; color:var(--muted);">
-                After saving, go to DXCare and press your execution hotkey to run the workflow!
-            </div>
-        </div>
-
-        <!-- Status Messages -->
-        <div id="alertContainer"></div>
+        <div class="right" id="currentTime">Loading...</div>
     </div>
 </div>
 
 <script>
-const API_URL = window.location.origin;
+// API Configuration
+const API_URL = 'http://localhost:5000';
 const AUTH_TOKEN = 'Bearer hackathon_demo_token';
 
-// State
-let config = {
-    excelPath: '',
-    searchColumn: '',
-    returnColumns: [],
-    patientCoords: null,
-    outputFields: [],  // Array of {id, name, description, coords}
-    executeHotkey: 'CTRL+ALT+E',
-    enableLLM: false
-};
+// Agent state
+let agentRunning = false;
+let agentCheckInterval = null;
 
-let pickingSessions = {
-    patient: null
-};
-
-let activeField = null; // Which field is currently being set ('patient' or 'output_X')
-let pollingInterval = null;
-let outputFieldCounter = 0;
-
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    loadExistingWorkflow();
-    startPolling();
-    renderOutputFields();
-});
-
-// (File browsing removed - browser security prevents full path access)
-
-// Excel columns management
-let excelColumns = [];
-
-async function handleExcelUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const statusDiv = document.getElementById('excelStatus');
-    const pathInput = document.getElementById('excelPath');
-    const loadBtn = document.getElementById('loadColumnsBtn');
-
-    try {
-        // Show uploading status
-        statusDiv.className = '';
-        statusDiv.style.background = '#e8f2ff';
-        statusDiv.style.border = '1px solid var(--accent)';
-        statusDiv.style.color = 'var(--accent)';
-        statusDiv.innerHTML = `⏳ Uploading ${file.name}...`;
-
-        // Create form data
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('filename', file.name);
-
-        // Upload file
-        const response = await fetch(`${API_URL}/api/excel/upload`, {
-            method: 'POST',
-            headers: {
-                'Authorization': AUTH_TOKEN
-            },
-            body: formData
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Upload failed');
-        }
-
-        const data = await response.json();
-
-        // Update path input with full path
-        pathInput.value = data.file_path;
-
-        // Show success
-        statusDiv.style.background = '#e8f7f0';
-        statusDiv.style.border = '1px solid var(--ok)';
-        statusDiv.style.color = 'var(--ok)';
-        statusDiv.innerHTML = `✅ Uploaded: ${file.name}`;
-
-        // Enable load columns button
-        loadBtn.disabled = false;
-
-        showAlert('success', `File uploaded successfully! Click "Load Columns" to continue.`);
-
-    } catch (error) {
-        statusDiv.style.background = '#ffe8e8';
-        statusDiv.style.border = '1px solid var(--danger)';
-        statusDiv.style.color = 'var(--danger)';
-        statusDiv.innerHTML = `❌ Upload failed: ${error.message}`;
-
-        showAlert('error', `Upload failed: ${error.message}`);
-    }
-}
-
-async function loadExcelColumns() {
-    const filePath = document.getElementById('excelPath').value.trim();
-
-    if (!filePath) {
-        showAlert('error', 'Please enter Excel file path first.');
-        return;
-    }
-
-    const btn = document.getElementById('loadColumnsBtn');
-    const statusDiv = document.getElementById('excelStatus');
-
-    try {
-        btn.disabled = true;
-        btn.textContent = 'Loading...';
-        statusDiv.className = 'hidden';
-
-        const response = await fetch(`${API_URL}/api/excel/columns`, {
-            method: 'POST',
-            headers: {
-                'Authorization': AUTH_TOKEN,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                file_path: filePath
-            })
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Failed to load columns');
-        }
-
-        const data = await response.json();
-        excelColumns = data.columns;
-
-        // Update file path with absolute path
-        document.getElementById('excelPath').value = data.file_path;
-
-        // Show success status
-        statusDiv.className = '';
-        statusDiv.style.background = '#e8f7f0';
-        statusDiv.style.border = '1px solid var(--ok)';
-        statusDiv.style.color = 'var(--ok)';
-        statusDiv.innerHTML = `✅ Loaded ${excelColumns.length} columns: ${excelColumns.join(', ')}`;
-
-        // Render column selectors
-        renderColumnSelectors();
-
-        showAlert('success', `Loaded ${excelColumns.length} columns from Excel!`);
-
-    } catch (error) {
-        statusDiv.className = '';
-        statusDiv.style.background = '#ffe8e8';
-        statusDiv.style.border = '1px solid var(--danger)';
-        statusDiv.style.color = 'var(--danger)';
-        statusDiv.innerHTML = `❌ ${error.message}`;
-
-        showAlert('error', `Failed to load columns: ${error.message}`);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Load Columns';
-    }
-}
-
-function renderColumnSelectors() {
-    const container = document.getElementById('columnConfigSection');
-
-    container.innerHTML = `
-        <div class="form-row">
-            <label class="form-label">Search Column (where patient IDs are)</label>
-            <select id="searchColumn">
-                <option value="">-- Select Column --</option>
-                ${excelColumns.map(col => `<option value="${col}">${col}</option>`).join('')}
-            </select>
-            <div style="font-size:10px; color:var(--muted); margin-top:4px;">
-                Column containing patient IDs to search for
-            </div>
-        </div>
-
-        <div class="form-row">
-            <label class="form-label">Return Columns (select multiple)</label>
-            <div id="returnColumnsCheckboxes" style="background:#fff; border:1px solid var(--line2); border-radius:3px; padding:12px; max-height:200px; overflow-y:auto;">
-                ${excelColumns.map(col => `
-                    <label style="display:block; margin-bottom:8px; font-size:12px; cursor:pointer;">
-                        <input type="checkbox" value="${col}" onchange="updateReturnColumns()" style="width:auto; margin-right:8px;">
-                        ${col}
-                    </label>
-                `).join('')}
-            </div>
-            <div style="font-size:10px; color:var(--muted); margin-top:4px;">
-                Select which columns to retrieve and use for formatting
-            </div>
-        </div>
-
-        <div id="selectedReturnColumns" style="margin-top:8px; padding:8px; background:#e8f2ff; border:1px solid var(--accent); border-radius:3px; font-size:11px; display:none;">
-            <strong>Selected:</strong> <span id="selectedReturnColumnsList"></span>
-        </div>
-    `;
-}
-
-function updateReturnColumns() {
-    const checkboxes = document.querySelectorAll('#returnColumnsCheckboxes input[type="checkbox"]:checked');
-    const selected = Array.from(checkboxes).map(cb => cb.value);
-
-    const selectedDiv = document.getElementById('selectedReturnColumns');
-    const selectedList = document.getElementById('selectedReturnColumnsList');
-
-    if (selected.length > 0) {
-        selectedDiv.style.display = 'block';
-        selectedList.textContent = selected.join(', ');
-    } else {
-        selectedDiv.style.display = 'none';
-    }
-}
-
-// Output fields management
-function addOutputField() {
-    const fieldId = `field_${++outputFieldCounter}`;
-    const field = {
-        id: fieldId,
-        name: `Field ${outputFieldCounter}`,
-        description: '',
-        coords: null
+// Update time in status bar
+function updateTime() {
+    const now = new Date();
+    const options = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
     };
-
-    config.outputFields.push(field);
-    renderOutputFields();
+    const timeString = now.toLocaleDateString('en-US', options);
+    document.getElementById('currentTime').textContent = timeString;
 }
 
-function removeOutputField(fieldId) {
-    config.outputFields = config.outputFields.filter(f => f.id !== fieldId);
-
-    // Clear picking session if this field was being picked
-    if (activeField === fieldId) {
-        activeField = null;
-    }
-    delete pickingSessions[fieldId];
-
-    renderOutputFields();
-}
-
-function renderOutputFields() {
-    const container = document.getElementById('outputFieldsList');
-
-    if (config.outputFields.length === 0) {
-        container.innerHTML = '<div style="color:var(--muted); font-size:12px; padding:12px; background:#fff; border:1px solid var(--line2); border-radius:3px;">No output fields yet. Click "Add Output Field" to create one.</div>';
-        return;
-    }
-
-    container.innerHTML = config.outputFields.map(field => `
-        <div class="coordBox" style="margin-bottom:16px;" id="field_${field.id}">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <input type="text" value="${field.name}" onchange="updateFieldName('${field.id}', this.value)"
-                    style="width:200px; font-weight:700;" placeholder="Field Name">
-                <button class="btn" onclick="removeOutputField('${field.id}')" style="background:var(--danger); color:white; border-color:var(--danger); padding:4px 8px; font-size:11px;">
-                    Remove
-                </button>
-            </div>
-
-            <div class="form-row">
-                <label class="form-label">Field Description (for LLM)</label>
-                <input type="text" value="${field.description || ''}" onchange="updateFieldDescription('${field.id}', this.value)"
-                    placeholder="e.g., Patient's full name, Age in years, Primary diagnosis">
-                <div style="font-size:10px; color:var(--muted); margin-top:4px;">
-                    Tell the LLM what this field should contain. Be specific!
-                </div>
-            </div>
-
-            <div class="coordStatus" style="margin-top:12px;">
-                <span class="status-dot ${field.coords ? 'set' : 'unset'}" id="dot_${field.id}"></span>
-                <span class="label">Coordinates:</span>
-                <span class="value ${field.coords ? 'set' : 'unset'}" id="coords_${field.id}">
-                    ${field.coords ? `(${field.coords.x}, ${field.coords.y})` : 'Not Set'}
-                </span>
-                <button class="btn primary" id="toggle_${field.id}" onclick="toggleField('${field.id}')" style="margin-left:auto;">
-                    Set This Field
-                </button>
-            </div>
-
-            <div class="instruction" style="margin-top:8px;">
-                Press <code>CTRL+ALT+C</code> then click where you want this field pasted in DXCare
-            </div>
-        </div>
-    `).join('');
-}
-
-function updateFieldName(fieldId, name) {
-    const field = config.outputFields.find(f => f.id === fieldId);
-    if (field) field.name = name;
-}
-
-function updateFieldDescription(fieldId, description) {
-    const field = config.outputFields.find(f => f.id === fieldId);
-    if (field) field.description = description;
-}
-
-// Toggle field for coordinate picking
-function toggleField(fieldType) {
-    // If already active, deactivate
-    if (activeField === fieldType) {
-        activeField = null;
-        updateToggleButton(fieldType, false);
-        pickingSessions[fieldType] = null;
-        return;
-    }
-
-    // Deactivate other field
-    if (activeField) {
-        updateToggleButton(activeField, false);
-        pickingSessions[activeField] = null;
-    }
-
-    // Activate this field
-    activeField = fieldType;
-    updateToggleButton(fieldType, true);
-    activatePickingSession(fieldType);
-}
-
-function updateToggleButton(fieldType, active) {
-    let btnId;
-    if (fieldType === 'patient') {
-        btnId = 'patientToggle';
-    } else {
-        btnId = `toggle_${fieldType}`;
-    }
-
-    const btn = document.getElementById(btnId);
-    if (!btn) return;
-
-    if (active) {
-        btn.textContent = 'Waiting for CTRL+ALT+C...';
-        btn.style.background = 'var(--warning)';
-        btn.style.borderColor = 'var(--warning)';
-        btn.disabled = false;
-    } else {
-        btn.textContent = 'Set This Field';
-        btn.style.background = 'var(--accent)';
-        btn.style.borderColor = 'var(--accent)';
-        btn.disabled = false;
-    }
-}
-
-// Polling for coordinate updates
-function startPolling() {
-    // Poll every 500ms for coordinate updates
-    pollingInterval = setInterval(async () => {
-        // Only poll if there's an active field
-        if (!activeField) return;
-
-        const session = pickingSessions[activeField];
-        if (!session) return;
-
-        const result = await pollSession(session, activeField);
-        if (result) {
-            // Coordinates received!
-            if (activeField === 'patient') {
-                config.patientCoords = result;
-                // Fetch OCR preview for patient field
-                await fetchOCRPreview(result.x, result.y);
-            } else {
-                // Update output field coords
-                const field = config.outputFields.find(f => f.id === activeField);
-                if (field) {
-                    field.coords = result;
-                }
-            }
-
-            updateCoordDisplay(activeField, result);
-            updateToggleButton(activeField, false);
-
-            // Clear session and active field
-            pickingSessions[activeField] = null;
-            activeField = null;
-        }
-    }, 500);
-}
-
-async function pollSession(sessionId, fieldType) {
+// Load statistics from API
+async function loadStats() {
     try {
-        const response = await fetch(`${API_URL}/api/picker/status/${sessionId}`, {
+        // Get health status
+        const response = await fetch(`${API_URL}/api/health`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.workflows_loaded) {
+                document.getElementById('workflowsCount').textContent = data.workflows_loaded;
+            }
+        }
+
+        // Get visual workflows count
+        const vwResponse = await fetch(`${API_URL}/api/visual-workflows`, {
             headers: { 'Authorization': AUTH_TOKEN }
         });
-
-        if (!response.ok) return null;
-
-        const data = await response.json();
-
-        if (data.status === 'completed' && data.coordinates) {
-            return data.coordinates;
+        if (vwResponse.ok) {
+            const vwData = await vwResponse.json();
+            if (vwData.total) {
+                document.getElementById('workflowsCount').textContent = vwData.total;
+            }
         }
-
-        return null;
     } catch (error) {
-        console.error('Poll error:', error);
-        return null;
+        console.error('Failed to load stats:', error);
     }
 }
 
-async function activatePickingSession(fieldType) {
-    const sessionId = `${fieldType}_${Date.now()}`;
-    const fieldName = fieldType === 'patient' ? 'patient_coords' : 'output_coords';
-
+// Check agent status
+async function checkAgentStatus() {
     try {
-        const response = await fetch(`${API_URL}/api/picker/activate`, {
-            method: 'POST',
-            headers: {
-                'Authorization': AUTH_TOKEN,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                session_id: sessionId,
-                field_name: fieldName
-            })
+        const response = await fetch(`${API_URL}/api/agent/status`, {
+            headers: { 'Authorization': AUTH_TOKEN }
         });
 
         if (response.ok) {
-            pickingSessions[fieldType] = sessionId;
+            const data = await response.json();
+            updateAgentUI(data.running, data.uptime_seconds, data.last_error);
+        } else {
+            updateAgentUI(false, 0, null);
         }
     } catch (error) {
-        console.error('Activate picker error:', error);
+        console.error('Failed to check agent status:', error);
+        updateAgentUI(false, 0, null);
     }
 }
 
-function updateCoordDisplay(fieldType, coords) {
-    let dotId, displayId;
+// Update agent UI
+function updateAgentUI(running, uptimeSeconds, lastError) {
+    agentRunning = running;
 
-    if (fieldType === 'patient') {
-        dotId = 'patientDot';
-        displayId = 'patientCoordDisplay';
+    const statusText = document.getElementById('agentStatusText');
+    const statusLabel = document.getElementById('agentStatusLabel');
+    const toggleBtn = document.getElementById('agentToggleBtn');
+
+    if (running) {
+        statusText.style.color = 'var(--ok)';
+        statusText.textContent = '●';
+
+        const uptime = Math.floor(uptimeSeconds);
+        const minutes = Math.floor(uptime / 60);
+        const seconds = uptime % 60;
+        const uptimeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+
+        statusLabel.textContent = `Active (${uptimeStr})`;
+        statusLabel.title = 'Assistant is active and monitoring keyboard shortcuts';
+
+        toggleBtn.textContent = 'Turn Off';
+        toggleBtn.style.background = 'var(--danger)';
+        toggleBtn.disabled = false;
     } else {
-        dotId = `dot_${fieldType}`;
-        displayId = `coords_${fieldType}`;
-    }
+        statusText.style.color = 'var(--muted)';
+        statusText.textContent = '●';
 
-    const dot = document.getElementById(dotId);
-    const display = document.getElementById(displayId);
+        if (lastError) {
+            statusLabel.textContent = 'Error';
+            statusLabel.title = `Could not start: ${lastError}`;
+            statusLabel.style.color = 'var(--danger)';
+        } else {
+            statusLabel.textContent = 'Inactive';
+            statusLabel.title = 'Assistant is not running';
+            statusLabel.style.color = 'inherit';
+        }
 
-    if (dot && display) {
-        dot.className = 'status-dot set';
-        display.className = 'value set';
-        display.textContent = `(${coords.x}, ${coords.y})`;
+        toggleBtn.textContent = 'Turn On';
+        toggleBtn.style.background = 'var(--ok)';
+        toggleBtn.disabled = false;
     }
 }
 
-async function fetchOCRPreview(x, y) {
-    const ocrWidth = parseInt(document.getElementById('ocrWidth').value) || 150;
-    const ocrHeight = parseInt(document.getElementById('ocrHeight').value) || 40;
-    const offsetX = parseInt(document.getElementById('coordOffsetX').value) || 0;
-    const offsetY = parseInt(document.getElementById('coordOffsetY').value) || 0;
+// Toggle agent on/off
+async function toggleAgent() {
+    const toggleBtn = document.getElementById('agentToggleBtn');
+    const statusLabel = document.getElementById('agentStatusLabel');
+
+    toggleBtn.disabled = true;
+    const action = agentRunning ? 'stop' : 'start';
+    toggleBtn.textContent = action === 'stop' ? 'Turning Off...' : 'Turning On...';
 
     try {
-        const response = await fetch(`${API_URL}/api/picker/preview-ocr`, {
+        const response = await fetch(`${API_URL}/api/agent/${action}`, {
             method: 'POST',
-            headers: {
-                'Authorization': AUTH_TOKEN,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                x: x + offsetX,
-                y: y + offsetY,
-                width: ocrWidth,
-                height: ocrHeight
-            })
-        });
-
-        if (!response.ok) {
-            console.error('OCR preview failed');
-            return;
-        }
-
-        const data = await response.json();
-
-        // Display preview
-        document.getElementById('ocrPreviewPatient').classList.remove('hidden');
-        document.getElementById('ocrPreviewImagePatient').src = `data:image/png;base64,${data.image_base64}`;
-        document.getElementById('ocrPreviewTextPatient').textContent = data.ocr_text || '(empty)';
-        document.getElementById('ocrPreviewIdPatient').textContent = data.extracted_id || '❌ No numbers found';
-
-        if (!data.extracted_id) {
-            document.getElementById('ocrPreviewIdPatient').style.background = '#ffe8e8';
-            document.getElementById('ocrPreviewIdPatient').style.color = 'var(--danger)';
-        } else {
-            document.getElementById('ocrPreviewIdPatient').style.background = '#e8f7f0';
-            document.getElementById('ocrPreviewIdPatient').style.color = 'var(--ok)';
-        }
-
-    } catch (error) {
-        console.error('OCR preview error:', error);
-    }
-}
-
-// Save workflow
-async function saveWorkflow() {
-    // Validation
-    config.excelPath = document.getElementById('excelPath').value.trim();
-
-    // Get search column from dropdown
-    const searchColumnSelect = document.getElementById('searchColumn');
-    config.searchColumn = searchColumnSelect ? searchColumnSelect.value : '';
-
-    // Get return columns from checkboxes
-    const returnCheckboxes = document.querySelectorAll('#returnColumnsCheckboxes input[type="checkbox"]:checked');
-    config.returnColumns = Array.from(returnCheckboxes).map(cb => cb.value);
-
-    config.executeHotkey = document.getElementById('executeHotkey').value.trim().toUpperCase();
-    config.enableLLM = document.getElementById('enableLLM').checked;
-
-    if (!config.excelPath) {
-        showAlert('error', 'Please provide Excel file path.');
-        return;
-    }
-
-    if (!config.searchColumn) {
-        showAlert('error', 'Please specify the search column.');
-        return;
-    }
-
-    if (config.returnColumns.length === 0) {
-        showAlert('error', 'Please specify at least one return column.');
-        return;
-    }
-
-    if (!config.patientCoords) {
-        showAlert('error', 'Please set patient ID coordinates using CTRL+ALT+C.');
-        return;
-    }
-
-    if (config.outputFields.length === 0) {
-        showAlert('error', 'Please add at least one output field.');
-        return;
-    }
-
-    // Check all output fields have coordinates
-    for (const field of config.outputFields) {
-        if (!field.coords) {
-            showAlert('error', `Please set coordinates for field "${field.name}".`);
-            return;
-        }
-
-        if (config.enableLLM && !field.description) {
-            showAlert('error', `Please provide description for field "${field.name}" (required for LLM).`);
-            return;
-        }
-    }
-
-    if (!config.executeHotkey) {
-        showAlert('error', 'Please specify an execution hotkey.');
-        return;
-    }
-
-    // Get OCR capture size
-    const ocrWidth = parseInt(document.getElementById('ocrWidth').value) || 150;
-    const ocrHeight = parseInt(document.getElementById('ocrHeight').value) || 40;
-
-    // Get coordinate offsets
-    const offsetX = parseInt(document.getElementById('coordOffsetX').value) || 0;
-    const offsetY = parseInt(document.getElementById('coordOffsetY').value) || 0;
-
-    // Build workflow steps
-    const steps = [
-        {
-            step_id: '1',
-            step_type: 'read_coords',
-            name: 'Read patient ID from screen',
-            x: config.patientCoords.x + offsetX,
-            y: config.patientCoords.y + offsetY,
-            width: ocrWidth,
-            height: ocrHeight,
-            extract_numbers: true,
-            output_variable: 'patient_identifier'
-        },
-        {
-            step_id: '2',
-            step_type: 'lookup_excel',
-            name: 'Lookup patient data in Excel',
-            file_path: config.excelPath,
-            search_column: config.searchColumn,
-            search_value_variable: 'patient_identifier',
-            return_columns: config.returnColumns,
-            output_variable: 'patient_data'
-        }
-    ];
-
-    let stepCounter = 3;
-
-    // Add LLM formatting step if enabled
-    if (config.enableLLM) {
-        steps.push({
-            step_id: stepCounter.toString(),
-            step_type: 'format_with_llm',
-            name: 'Format data with Groq AI',
-            input_variable: 'patient_data',
-            fields: config.outputFields.map(f => ({
-                name: f.name,
-                description: f.description
-            })),
-            output_variable: 'formatted_fields'
-        });
-        stepCounter++;
-    }
-
-    // Add write steps for each output field
-    config.outputFields.forEach((field, index) => {
-        let contentTemplate;
-
-        if (config.enableLLM) {
-            // Use LLM formatted data
-            contentTemplate = `{formatted_fields.${field.name}}`;
-        } else {
-            // Use raw Excel data (all columns concatenated)
-            contentTemplate = buildContentTemplate(config.returnColumns);
-        }
-
-        steps.push({
-            step_id: stepCounter.toString(),
-            step_type: 'write_coords',
-            name: `Write to ${field.name}`,
-            x: field.coords.x + offsetX,
-            y: field.coords.y + offsetY,
-            content_template: contentTemplate,
-            insert_method: 'paste'
-        });
-
-        stepCounter++;
-    });
-
-    // Build workflow
-    const workflow = {
-        workflow_id: 'excel_lookup_auto',
-        name: 'Excel Patient Lookup',
-        description: `Search ${config.searchColumn} in Excel, ${config.enableLLM ? 'format with LLM, ' : ''}write to ${config.outputFields.length} field(s)`,
-        hotkey: config.executeHotkey,
-        enabled: true,
-        steps: steps
-    };
-
-    // Save to middleware
-    try {
-        document.getElementById('saveBtn').disabled = true;
-        document.getElementById('saveBtn').textContent = '💾 Saving...';
-
-        // Check if workflow exists
-        const existingWorkflow = await fetch(`${API_URL}/api/visual-workflows/excel_lookup_auto`, {
             headers: { 'Authorization': AUTH_TOKEN }
         });
 
-        let response;
-        if (existingWorkflow.ok) {
-            // Update existing
-            response = await fetch(`${API_URL}/api/visual-workflows/excel_lookup_auto`, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': AUTH_TOKEN,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(workflow)
-            });
-        } else {
-            // Create new
-            response = await fetch(`${API_URL}/api/visual-workflows`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': AUTH_TOKEN,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(workflow)
-            });
-        }
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Assistant action result:', data);
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || error.detail || 'Save failed');
-        }
-
-        showAlert('success', `✅ Workflow saved! Press ${config.executeHotkey} in DXCare to execute.`);
-
-        document.getElementById('saveBtn').textContent = '💾 Save Workflow Configuration';
-
-    } catch (error) {
-        showAlert('error', `Failed to save workflow: ${error.message}`);
-    } finally {
-        document.getElementById('saveBtn').disabled = false;
-    }
-}
-
-function buildContentTemplate(returnColumns) {
-    // Build template like: "First Name: {patient_data.First Name}, Last Name: {patient_data.Last Name}, ..."
-    return returnColumns.map(col => `${col}: {patient_data.${col}}`).join(', ');
-}
-
-// Load existing workflow
-async function loadExistingWorkflow() {
-    try {
-        const response = await fetch(`${API_URL}/api/visual-workflows/excel_lookup_auto`, {
-            headers: { 'Authorization': AUTH_TOKEN }
-        });
-
-        if (!response.ok) return;
-
-        const workflow = await response.json();
-
-        // Populate fields
-        if (workflow.hotkey) {
-            document.getElementById('executeHotkey').value = workflow.hotkey;
-            config.executeHotkey = workflow.hotkey;
-        }
-
-        // Extract config from steps
-        workflow.steps.forEach(step => {
-            if (step.step_type === 'read_coords') {
-                config.patientCoords = { x: step.x, y: step.y };
-                updateCoordDisplay('patient', config.patientCoords);
-                // Load OCR capture size
-                if (step.width) document.getElementById('ocrWidth').value = step.width;
-                if (step.height) document.getElementById('ocrHeight').value = step.height;
-            } else if (step.step_type === 'lookup_excel') {
-                config.excelPath = step.file_path;
-                config.searchColumn = step.search_column;
-                config.returnColumns = step.return_columns;
-                document.getElementById('excelPath').value = config.excelPath;
-
-                // Load columns from Excel file automatically
-                loadExcelColumns().then(() => {
-                    // After columns load, select the previously configured ones
-                    if (config.searchColumn) {
-                        const searchSelect = document.getElementById('searchColumn');
-                        if (searchSelect) searchSelect.value = config.searchColumn;
-                    }
-
-                    if (config.returnColumns && config.returnColumns.length > 0) {
-                        config.returnColumns.forEach(col => {
-                            const checkbox = document.querySelector(`#returnColumnsCheckboxes input[value="${col}"]`);
-                            if (checkbox) checkbox.checked = true;
-                        });
-                        updateReturnColumns();
-                    }
-                });
+            if (data.status === 'already_running') {
+                statusLabel.textContent = 'Already Active';
             }
-        });
 
-        showAlert('info', 'Loaded existing workflow configuration.');
+            // Immediately check status after a short delay
+            setTimeout(checkAgentStatus, 500);
+        } else {
+            const error = await response.json();
+            const errorMsg = error.detail || error.error || 'Unknown error';
 
+            console.error(`Failed to ${action} assistant:`, errorMsg);
+
+            // Show error in UI
+            alert(`Could not ${action === 'start' ? 'activate' : 'deactivate'} the clinical assistant.\n\n${errorMsg}\n\nPlease contact support if this problem persists.`);
+
+            toggleBtn.disabled = false;
+            toggleBtn.textContent = agentRunning ? 'Turn Off' : 'Turn On';
+        }
     } catch (error) {
-        console.log('No existing workflow found (this is normal for first-time setup)');
+        console.error('Failed to toggle assistant:', error);
+        alert(`Connection error: ${error.message}\n\nPlease check your network connection.`);
+        toggleBtn.disabled = false;
+        toggleBtn.textContent = agentRunning ? 'Turn Off' : 'Turn On';
     }
 }
 
-// Alert system
-function showAlert(type, message) {
-    const container = document.getElementById('alertContainer');
-    const alert = document.createElement('div');
-    alert.className = `alert ${type}`;
-    alert.textContent = message;
-
-    container.innerHTML = '';
-    container.appendChild(alert);
-
-    setTimeout(() => {
-        alert.remove();
-    }, 5000);
+// Navigate to feature
+function openFeature(feature) {
+    if (feature === 'excel') {
+        window.location.href = '/excel';
+    }
 }
+
+// Initialize on page load
+updateTime();
+setInterval(updateTime, 1000);
+
+loadStats();
+
+// Check agent status immediately and then every 2 seconds
+checkAgentStatus();
+agentCheckInterval = setInterval(checkAgentStatus, 2000);
 </script>
 
 </body>

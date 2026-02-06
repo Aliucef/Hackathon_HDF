@@ -54,6 +54,10 @@ startup_time: Optional[datetime] = None
 picker_sessions: dict = {}  # session_id -> {"field_name": str, "coordinates": Optional[tuple]}
 current_session_id: Optional[str] = None
 
+# Agent process state
+agent_process = None  # Subprocess running the agent
+agent_start_time: Optional[datetime] = None
+
 # Configuration
 MIDDLEWARE_TOKEN = os.getenv("MIDDLEWARE_TOKEN", "hackathon_demo_token")
 AUDIT_LOG_PATH = os.getenv("AUDIT_LOG_PATH", "logs/audit.log")
@@ -130,7 +134,22 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
+    global agent_process
+
     print("\n🛑 Shutting down HackApp Middleware...")
+
+    # Stop agent process if running
+    if agent_process is not None and agent_process.poll() is None:
+        print("🛑 Stopping agent process...")
+        try:
+            agent_process.terminate()
+            agent_process.wait(timeout=5)
+            print("✅ Agent process stopped")
+        except:
+            agent_process.kill()
+            agent_process.wait()
+            print("⚠️  Agent process force killed")
+
     audit_logger = get_audit_logger()
     audit_logger.log_shutdown()
 
@@ -189,6 +208,16 @@ async def root():
                 "docs": "/docs"
             }
         }
+
+
+@app.get("/excel", response_class=HTMLResponse, tags=["Dashboard"])
+async def excel_dashboard():
+    """Excel automation dashboard"""
+    excel_path = Path(__file__).parent / "static" / "excel.html"
+    if excel_path.exists():
+        return HTMLResponse(content=excel_path.read_text(encoding='utf-8'), status_code=200)
+    else:
+        raise HTTPException(status_code=404, detail="Excel dashboard not found")
 
 
 @app.get("/api/health", response_model=HealthResponse, tags=["Monitoring"])
@@ -697,6 +726,269 @@ async def get_excel_columns(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading Excel: {str(e)}")
+
+
+# ============================================================================
+# Agent Control Endpoints
+# ============================================================================
+
+@app.post("/api/agent/start", tags=["Agent"])
+async def start_agent(authorization: str = Header(None)):
+    """
+    Start the agent process
+
+    Returns:
+        {
+            "status": "started" | "already_running",
+            "pid": process_id
+        }
+    """
+    verify_token(authorization)
+
+    global agent_process, agent_start_time
+
+    # Check if already running
+    if agent_process is not None and agent_process.poll() is None:
+        return {
+            "status": "already_running",
+            "pid": agent_process.pid,
+            "uptime_seconds": (datetime.now() - agent_start_time).total_seconds() if agent_start_time else 0
+        }
+
+    try:
+        import subprocess
+        import sys
+
+        # Clean up any dead process reference
+        if agent_process is not None:
+            agent_process = None
+            agent_start_time = None
+
+        # Get the path to the agent main.py
+        agent_path = Path(__file__).parent.parent / "agent" / "main.py"
+
+        if not agent_path.exists():
+            raise HTTPException(status_code=404, detail=f"Agent script not found: {agent_path}")
+
+        # Start the agent process with proper error handling
+        # Set up environment with PYTHONPATH
+        agent_env = os.environ.copy()
+        hackapp_dir = str(agent_path.parent.parent)
+
+        # Add hackapp directory to PYTHONPATH so imports work
+        if 'PYTHONPATH' in agent_env:
+            agent_env['PYTHONPATH'] = f"{hackapp_dir}{os.pathsep}{agent_env['PYTHONPATH']}"
+        else:
+            agent_env['PYTHONPATH'] = hackapp_dir
+
+        # Force UTF-8 encoding for Windows console to handle emoji characters
+        agent_env['PYTHONIOENCODING'] = 'utf-8'
+
+        # Use CREATE_NEW_CONSOLE on Windows to prevent terminal issues
+        import platform
+        startupinfo = None
+        creationflags = 0
+
+        if platform.system() == 'Windows':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            # CREATE_NO_WINDOW flag to hide console window
+            creationflags = 0x08000000  # CREATE_NO_WINDOW
+
+        agent_process = subprocess.Popen(
+            [sys.executable, "-u", str(agent_path)],  # -u for unbuffered output
+            cwd=hackapp_dir,  # Run from hackapp/ directory
+            env=agent_env,  # Pass modified environment
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,  # Line buffered
+            startupinfo=startupinfo,
+            creationflags=creationflags
+        )
+
+        agent_start_time = datetime.now()
+
+        # Give it a moment to start and check if it immediately crashes
+        import asyncio
+        await asyncio.sleep(0.5)
+
+        if agent_process.poll() is not None:
+            # Process died immediately
+            stdout, stderr = agent_process.communicate()
+            error_msg = stderr if stderr else stdout
+            print(f"❌ Agent crashed immediately: {error_msg}")
+            agent_process = None
+            agent_start_time = None
+            raise HTTPException(
+                status_code=500,
+                detail=f"Agent crashed immediately after start. Error: {error_msg[:500]}"
+            )
+
+        print(f"✅ Agent started successfully with PID: {agent_process.pid}")
+
+        return {
+            "status": "started",
+            "pid": agent_process.pid,
+            "message": "Agent process started successfully"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Failed to start agent: {e}")
+        import traceback
+        traceback.print_exc()
+        agent_process = None
+        agent_start_time = None
+        raise HTTPException(status_code=500, detail=f"Failed to start agent: {str(e)}")
+
+
+@app.post("/api/agent/stop", tags=["Agent"])
+async def stop_agent(authorization: str = Header(None)):
+    """
+    Stop the agent process
+
+    Returns:
+        {
+            "status": "stopped" | "not_running"
+        }
+    """
+    verify_token(authorization)
+
+    global agent_process, agent_start_time
+
+    # Check if running
+    if agent_process is None or agent_process.poll() is not None:
+        agent_process = None
+        agent_start_time = None
+        return {
+            "status": "not_running",
+            "message": "Agent was not running"
+        }
+
+    try:
+        # Terminate the process
+        agent_process.terminate()
+
+        # Wait up to 5 seconds for graceful shutdown
+        try:
+            agent_process.wait(timeout=5)
+        except:
+            # Force kill if it doesn't terminate gracefully
+            agent_process.kill()
+            agent_process.wait()
+
+        pid = agent_process.pid
+        agent_process = None
+        agent_start_time = None
+
+        print(f"✅ Agent stopped (PID: {pid})")
+
+        return {
+            "status": "stopped",
+            "message": "Agent process stopped successfully"
+        }
+
+    except Exception as e:
+        print(f"❌ Failed to stop agent: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to stop agent: {str(e)}")
+
+
+@app.get("/api/agent/status", tags=["Agent"])
+async def get_agent_status(authorization: str = Header(None)):
+    """
+    Get agent process status
+
+    Returns:
+        {
+            "running": true/false,
+            "pid": process_id (if running),
+            "uptime_seconds": seconds (if running)
+        }
+    """
+    verify_token(authorization)
+
+    global agent_process, agent_start_time
+
+    # Check if process is running
+    if agent_process is not None and agent_process.poll() is None:
+        uptime = (datetime.now() - agent_start_time).total_seconds() if agent_start_time else 0
+        return {
+            "running": True,
+            "pid": agent_process.pid,
+            "uptime_seconds": uptime
+        }
+    else:
+        # If process died, try to get error output
+        error_output = None
+        if agent_process is not None:
+            try:
+                stdout, stderr = agent_process.communicate(timeout=0.1)
+                error_output = stderr if stderr else stdout
+            except:
+                pass
+            agent_process = None
+            agent_start_time = None
+
+        return {
+            "running": False,
+            "pid": None,
+            "uptime_seconds": 0,
+            "last_error": error_output[:500] if error_output else None
+        }
+
+
+@app.get("/api/agent/logs", tags=["Agent"])
+async def get_agent_logs(authorization: str = Header(None)):
+    """
+    Get recent agent output (stdout/stderr)
+
+    Returns last output from agent process
+    """
+    verify_token(authorization)
+
+    global agent_process
+
+    if agent_process is None:
+        return {
+            "running": False,
+            "stdout": None,
+            "stderr": None,
+            "message": "Agent is not running"
+        }
+
+    try:
+        # Non-blocking read of available output
+        import select
+        import os
+
+        stdout_data = ""
+        stderr_data = ""
+
+        # Try to read stdout if available
+        if agent_process.stdout:
+            try:
+                # This is a simplified approach - in production you'd use a proper logging system
+                stdout_data = "Output capture not implemented in streaming mode"
+            except:
+                pass
+
+        return {
+            "running": agent_process.poll() is None,
+            "pid": agent_process.pid if agent_process else None,
+            "stdout": stdout_data,
+            "stderr": stderr_data,
+            "message": "Agent logs (limited capture)"
+        }
+
+    except Exception as e:
+        return {
+            "running": False,
+            "error": str(e)
+        }
 
 
 # ============================================================================
