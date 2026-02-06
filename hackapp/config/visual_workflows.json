@@ -53,7 +53,7 @@
   {
     "workflow_id": "excel_lookup_auto",
     "name": "Excel Patient Lookup",
-    "description": "Search Patient ID in Excel, format with LLM, write to 4 field(s)",
+    "description": "Search Patient ID in Excel, format with LLM, write to 1 field(s)",
     "hotkey": "CTRL+ALT+E",
     "enabled": true,
     "steps": [
@@ -61,8 +61,8 @@
         "step_id": "1",
         "step_type": "read_coords",
         "name": "Read patient ID from screen",
-        "x": 214,
-        "y": 140,
+        "x": 210,
+        "y": 143,
         "width": 200,
         "height": 40,
         "extract_numbers": true,
@@ -98,19 +98,7 @@
         "fields": [
           {
             "name": "Field 1",
-            "description": "first and last name , and age"
-          },
-          {
-            "name": "Field 2",
-            "description": "Gender,Diagnosis Text,ICD-10 Code,Admission Date,Attending Physician,Department"
-          },
-          {
-            "name": "Field 3",
-            "description": "some random sentence "
-          },
-          {
-            "name": "Field 4",
-            "description": "another random sentence"
+            "description": "first and last names , and age"
           }
         ],
         "output_variable": "formatted_fields"
@@ -119,41 +107,14 @@
         "step_id": "4",
         "step_type": "write_coords",
         "name": "Write to Field 1",
-        "x": 694,
-        "y": 369,
+        "x": 672,
+        "y": 366,
         "content_template": "{formatted_fields.Field 1}",
-        "insert_method": "paste"
-      },
-      {
-        "step_id": "5",
-        "step_type": "write_coords",
-        "name": "Write to Field 2",
-        "x": 682,
-        "y": 531,
-        "content_template": "{formatted_fields.Field 2}",
-        "insert_method": "paste"
-      },
-      {
-        "step_id": "6",
-        "step_type": "write_coords",
-        "name": "Write to Field 3",
-        "x": 364,
-        "y": 812,
-        "content_template": "{formatted_fields.Field 3}",
-        "insert_method": "paste"
-      },
-      {
-        "step_id": "7",
-        "step_type": "write_coords",
-        "name": "Write to Field 4",
-        "x": 848,
-        "y": 799,
-        "content_template": "{formatted_fields.Field 4}",
         "insert_method": "paste"
       }
     ],
-    "created_at": "2026-02-06T11:12:48.145888",
-    "updated_at": "2026-02-06T11:12:48.146232"
+    "created_at": "2026-02-06T15:50:53.516784",
+    "updated_at": "2026-02-06T15:50:53.517136"
   },
   {
     "workflow_id": "voice_recording_auto",
@@ -188,7 +149,7 @@
           },
           {
             "name": "patient history",
-            "description": "this should tell what the patient is facing currently in a narrative way , and some suggested diagnoses"
+            "description": "WHAT patient could be suffering from"
           }
         ],
         "output_variable": "formatted_fields"
@@ -197,8 +158,8 @@
         "step_id": "4",
         "step_type": "write_coords",
         "name": "Write to PATIENT name",
-        "x": 714,
-        "y": 379,
+        "x": 691,
+        "y": 381,
         "content_template": "{formatted_fields.PATIENT name}",
         "insert_method": "paste"
       },
@@ -206,13 +167,13 @@
         "step_id": "5",
         "step_type": "write_coords",
         "name": "Write to patient history",
-        "x": 694,
-        "y": 533,
+        "x": 684,
+        "y": 544,
         "content_template": "{formatted_fields.patient history}",
         "insert_method": "paste"
       }
     ],
-    "created_at": "2026-02-06T14:50:24.309338",
-    "updated_at": "2026-02-06T14:50:24.313910"
+    "created_at": "2026-02-06T15:51:18.716339",
+    "updated_at": "2026-02-06T15:51:18.716834"
   }
 ]

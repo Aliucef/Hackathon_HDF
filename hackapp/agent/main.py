@@ -12,6 +12,7 @@ from inserter import FieldInserter
 from middleware_client import MiddlewareClient, MiddlewareError
 from picker import pick_coordinates
 from audio_recorder import AudioRecorder
+from agent_api import start_agent_api
 import config
 
 
@@ -69,6 +70,10 @@ class HackAppAgent:
         self.current_picking_field = None
 
         print("\n✅ Agent components initialized")
+
+        # Start agent API server for receiving GUI commands from middleware
+        print("\n🚀 Starting agent API server...")
+        start_agent_api(port=5002)
 
     def start(self):
         """Start the agent"""
@@ -170,14 +175,19 @@ class HackAppAgent:
         print(f"🎤 Voice Recording Toggle: {hotkey}")
         print(f"   Timestamp: {datetime.now().strftime('%H:%M:%S.%f')[:-3]}")
         print("=" * 70)
+        print(f"   🔍 [DEBUG] is_recording state: {self.audio_recorder.is_recording}")
+        print(f"   🔍 [DEBUG] audio_recorder object: {self.audio_recorder}")
 
         if self.audio_recorder.is_recording:
             # Stop recording
             print("   ⏹️  Stopping recording...")
-            self.audio_recorder.stop_recording()
+            print("   🔍 [DEBUG] Calling audio_recorder.stop_recording()...")
+            result = self.audio_recorder.stop_recording()
+            print(f"   🔍 [DEBUG] stop_recording() returned: {result}")
         else:
             # Start recording
             print("   🔴 Starting recording...")
+            print("   🔍 [DEBUG] Calling audio_recorder.start_recording()...")
             if self.audio_recorder.start_recording():
                 print("   ✅ Recording... Press CTRL+ALT+R again to stop")
             else:
@@ -190,22 +200,28 @@ class HackAppAgent:
         print("\n" + "=" * 70)
         print("🎤 Transcription Complete")
         print("=" * 70)
+        print(f"   🔍 [DEBUG] on_transcription_complete() called")
+        print(f"   🔍 [DEBUG] Transcription length: {len(transcription)} chars")
         print(f"   Text: {transcription[:200]}...")
 
         try:
             # Execute voice workflow with transcription
             workflow_id = 'voice_recording_auto'
             print(f"\n   🚀 Executing voice workflow...")
+            print(f"   🔍 [DEBUG] Workflow ID: {workflow_id}")
 
             # Pass transcription as initial variable to skip recording steps
             initial_variables = {
                 'transcription': transcription
             }
+            print(f"   🔍 [DEBUG] Initial variables: {initial_variables}")
 
+            print("   🔍 [DEBUG] Calling middleware_client.execute_visual_workflow()...")
             result = self.middleware_client.execute_visual_workflow(
                 workflow_id,
                 initial_variables=initial_variables
             )
+            print(f"   🔍 [DEBUG] Middleware response received")
 
             status = result.get('status')
             execution_time = result.get('execution_time_ms', 0)

@@ -26,3 +26,7 @@ python-dotenv==1.0.0
 sounddevice==0.4.6
 numpy==1.24.3
 SpeechRecognition==3.10.0
+
+# Agent API server (for middleware to send GUI commands)
+flask==3.0.0
+flask-cors==4.0.0

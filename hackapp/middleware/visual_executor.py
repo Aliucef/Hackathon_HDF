@@ -328,15 +328,14 @@ class WorkflowExecutor:
         }
 
     def _write_coords(self, step: Dict[str, Any]) -> Dict[str, Any]:
-        """Write text to screen coordinates - REAL IMPLEMENTATION"""
+        """Write text to screen coordinates - delegates to agent API"""
         try:
-            import pyautogui
-            import pyperclip
-        except ImportError as e:
+            import requests
+        except ImportError:
             return {
                 "step_id": step["step_id"],
                 "status": "error",
-                "error": f"Missing dependency: {str(e)}. Install: pip install pyautogui pyperclip"
+                "error": "requests library not available"
             }
 
         try:
@@ -344,7 +343,7 @@ class WorkflowExecutor:
             y = step["y"]
             content_template = step["content_template"]
             insert_method = step.get("insert_method", "paste")
-            key_sequence = step.get("key_sequence", "")  # e.g., "tab,tab,enter"
+            key_sequence = step.get("key_sequence", "")
 
             # Render template with variables
             print(f"   📝 Rendering template: {content_template[:100]}...")
@@ -355,51 +354,53 @@ class WorkflowExecutor:
                 print(f"   ⚠️  WARNING: Template rendering failed - content is undefined")
                 print(f"   Available variables: {list(self.variables.keys())}")
 
-            # Backup clipboard if using paste method
-            original_clipboard = None
-            if insert_method == "paste":
-                try:
-                    original_clipboard = pyperclip.paste()
-                except:
-                    pass  # Ignore clipboard backup errors
+            # Send to agent API for execution
+            print(f"   🖱️  Sending write command to agent: ({x}, {y})")
 
-            # Click coordinates
-            print(f"   🖱️  Clicking coordinates ({x}, {y})")
-            pyautogui.click(x, y)
-            time.sleep(0.3)
-
-            # Insert content
-            if insert_method == "paste":
-                pyperclip.copy(content)
-                pyautogui.hotkey('ctrl', 'v')
-                time.sleep(0.2)
-
-                # Restore original clipboard to avoid interference with next workflow
-                if original_clipboard is not None:
-                    try:
-                        pyperclip.copy(original_clipboard)
-                    except:
-                        pass  # Ignore restore errors
-            else:
-                pyautogui.write(content, interval=0.05)
-
-            time.sleep(0.2)
-
-            # Execute key sequence if provided
-            if key_sequence:
-                keys = [k.strip().lower() for k in key_sequence.split(',')]
-                for key in keys:
-                    if key:
-                        pyautogui.press(key)
-                        time.sleep(0.1)
-
-            print(f"   ✅ Content written to ({x}, {y}): {content[:50]}...")
-
-            return {
-                "step_id": step["step_id"],
-                "status": "success",
-                "output": {"content": content, "key_sequence": key_sequence}
+            agent_url = "http://localhost:5002/execute/write_coords"
+            payload = {
+                "x": x,
+                "y": y,
+                "content": content,
+                "insert_method": insert_method,
+                "key_sequence": key_sequence
             }
+
+            try:
+                response = requests.post(agent_url, json=payload, timeout=10)
+
+                if response.status_code == 200:
+                    result = response.json()
+                    print(f"   ✅ Content written to ({x}, {y}): {content[:50]}...")
+                    return {
+                        "step_id": step["step_id"],
+                        "status": "success",
+                        "output": {"content": content, "key_sequence": key_sequence}
+                    }
+                else:
+                    error_msg = response.json().get('error', 'Unknown error')
+                    print(f"   ❌ Agent returned error: {error_msg}")
+                    return {
+                        "step_id": step["step_id"],
+                        "status": "error",
+                        "error": f"Agent error: {error_msg}"
+                    }
+
+            except requests.exceptions.ConnectionError:
+                print(f"   ❌ Cannot connect to agent API on port 5002")
+                print(f"   💡 Make sure agent is running and API server started")
+                return {
+                    "step_id": step["step_id"],
+                    "status": "error",
+                    "error": "Cannot connect to agent API. Is agent running?"
+                }
+            except requests.exceptions.Timeout:
+                print(f"   ❌ Agent API timeout")
+                return {
+                    "step_id": step["step_id"],
+                    "status": "error",
+                    "error": "Agent API timeout"
+                }
 
         except Exception as e:
             print(f"   ❌ Write error: {str(e)}")
@@ -547,16 +548,26 @@ class WorkflowExecutor:
         for field in fields:
             field_name = field['name']
 
-            # Try to extract content between [field_name] and next [
-            pattern = rf'\[{re.escape(field_name)}\]\s*\n(.*?)(?:\n\[|$)'
-            match = re.search(pattern, llm_output, re.DOTALL)
+            # Try format 1: [field_name]\ncontent
+            pattern1 = rf'\[{re.escape(field_name)}\]\s*\n(.*?)(?:\n\[|$)'
+            match = re.search(pattern1, llm_output, re.DOTALL)
 
             if match:
                 content = match.group(1).strip()
                 result[field_name] = content
             else:
-                # Fallback: just use empty string
-                result[field_name] = ""
+                # Try format 2: field_name\ncontent (without brackets)
+                # Match field name at line start, then capture until next capital letter or end
+                pattern2 = rf'(?:^|\n){re.escape(field_name)}\s*\n(.*?)(?:\n[A-Z]|$)'
+                match = re.search(pattern2, llm_output, re.DOTALL | re.MULTILINE)
+
+                if match:
+                    content = match.group(1).strip()
+                    result[field_name] = content
+                else:
+                    # Fallback: just use empty string
+                    print(f"   ⚠️  Could not parse field '{field_name}' from LLM output")
+                    result[field_name] = ""
 
         return result
 

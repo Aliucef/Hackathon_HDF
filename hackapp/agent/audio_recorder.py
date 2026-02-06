@@ -58,12 +58,15 @@ class AudioRecorder:
 
     def start_recording(self):
         """Start recording audio"""
+        print("   🔍 [DEBUG] start_recording() called")
+
         if self.is_recording:
             print("   ⚠️  Already recording")
             return False
 
         if not sd or not np:
             print("   ❌ sounddevice/numpy not installed")
+            print(f"   🔍 [DEBUG] sd={sd}, np={np}")
             return False
 
         self.is_recording = True
@@ -71,11 +74,14 @@ class AudioRecorder:
         self.transcription = None
 
         print("   🔴 Recording started...")
+        print(f"   🔍 [DEBUG] Sample rate: {self.sample_rate}")
+        print(f"   🔍 [DEBUG] Buffer initialized: {len(self.audio_buffer)} chunks")
 
         # Show visual indicator
         if INDICATOR_AVAILABLE:
             try:
                 show_recording_indicator()
+                print("   ✅ [DEBUG] Visual indicator shown")
             except Exception as e:
                 print(f"   ⚠️  Could not show indicator: {e}")
 
@@ -88,9 +94,12 @@ class AudioRecorder:
                 blocksize=int(self.sample_rate * 0.1),  # 100ms blocks
             )
             self.stream.start()
+            print("   ✅ [DEBUG] Audio stream started successfully")
             return True
         except Exception as e:
             print(f"   ❌ Failed to start recording: {e}")
+            import traceback
+            traceback.print_exc()
             self.is_recording = False
             # Hide indicator if start failed
             if INDICATOR_AVAILABLE:
@@ -102,6 +111,8 @@ class AudioRecorder:
 
     def stop_recording(self):
         """Stop recording and start transcription"""
+        print("   🔍 [DEBUG] stop_recording() called")
+
         if not self.is_recording:
             print("   ⚠️  Not currently recording")
             return False
@@ -112,6 +123,7 @@ class AudioRecorder:
         if INDICATOR_AVAILABLE:
             try:
                 hide_recording_indicator()
+                print("   ✅ [DEBUG] Visual indicator hidden")
             except Exception as e:
                 print(f"   ⚠️  Could not hide indicator: {e}")
 
@@ -119,11 +131,14 @@ class AudioRecorder:
             self.stream.stop()
             self.stream.close()
             self.stream = None
+            print("   ✅ [DEBUG] Audio stream stopped and closed")
 
+        print(f"   🔍 [DEBUG] Captured {len(self.audio_buffer)} audio chunks")
         print("   ⏹️  Recording stopped")
         print("   🔄 Transcribing...")
 
         # Start transcription in background thread
+        print("   🔍 [DEBUG] Starting transcription thread...")
         threading.Thread(target=self._transcribe, daemon=True).start()
         return True
 
@@ -131,39 +146,66 @@ class AudioRecorder:
         """Called by sounddevice on audio thread"""
         if self.is_recording:
             self.audio_buffer.append(indata.copy())
+            # Print every 10 chunks to avoid spam
+            if len(self.audio_buffer) % 10 == 0:
+                print(f"   🔍 [DEBUG] Audio chunks captured: {len(self.audio_buffer)}")
 
     def _transcribe(self):
         """Transcribe recorded audio using Google Speech Recognition"""
+        print("   🔍 [DEBUG] _transcribe() thread started")
+
         if not self.audio_buffer:
             print("   ⚠️  No audio captured")
+            print("   🔍 [DEBUG] audio_buffer is empty")
+            return
+
+        print(f"   🔍 [DEBUG] Processing {len(self.audio_buffer)} audio chunks")
+
+        if not self.recognizer:
+            print("   ❌ Speech recognizer not available (sr module not loaded)")
             return
 
         try:
             # Combine audio chunks
+            print("   🔍 [DEBUG] Combining audio chunks...")
             combined = np.vstack(self.audio_buffer)
+            print(f"   🔍 [DEBUG] Combined audio shape: {combined.shape}")
+
             audio_data = sr.AudioData(combined.tobytes(), self.sample_rate, 2)
+            print(f"   🔍 [DEBUG] Created AudioData object, size: {len(combined.tobytes())} bytes")
 
             # Transcribe using Google
+            print("   🔍 [DEBUG] Calling Google Speech Recognition API...")
             text = self.recognizer.recognize_google(audio_data, language="en-US")
 
             self.transcription = text
             print(f"   ✅ Transcribed: {text[:100]}...")
+            print(f"   🔍 [DEBUG] Full transcription: {text}")
 
             # Call callback if registered
             if self.on_transcription_complete:
+                print("   🔍 [DEBUG] Calling transcription callback...")
                 self.on_transcription_complete(text)
+                print("   ✅ [DEBUG] Callback completed")
+            else:
+                print("   ⚠️  [DEBUG] No transcription callback registered")
 
         except sr.UnknownValueError:
             print("   ⚠️  Could not understand audio")
+            print("   🔍 [DEBUG] Speech Recognition could not parse the audio")
             self.transcription = None
         except sr.RequestError as e:
             print(f"   ⚠️  API error: {e}")
+            print(f"   🔍 [DEBUG] Request to Google API failed: {e}")
             self.transcription = None
         except Exception as e:
             print(f"   ❌ Transcription error: {e}")
+            print("   🔍 [DEBUG] Traceback:")
             import traceback
             traceback.print_exc()
             self.transcription = None
+
+        print("   🔍 [DEBUG] _transcribe() thread finished")
 
     def get_transcription(self) -> Optional[str]:
         """Get the transcription result"""
