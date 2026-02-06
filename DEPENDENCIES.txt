@@ -1,0 +1,152 @@
+================================================================================
+HackApp - Complete Dependency List
+================================================================================
+
+This file lists ALL dependencies required for the HackApp project.
+
+================================================================================
+SYSTEM DEPENDENCIES (Install with apt-get or system package manager)
+================================================================================
+
+Required for audio recording (sounddevice):
+  sudo apt-get install portaudio19-dev
+
+Required for Python development (if not already installed):
+  sudo apt-get install python3-dev python3-pip
+
+Optional - For better audio quality:
+  sudo apt-get install libportaudio2 libportaudiocpp0
+
+================================================================================
+PYTHON DEPENDENCIES (Install with pip)
+================================================================================
+
+You can install all Python dependencies with:
+  pip install -r hackapp/agent/requirements.txt
+  pip install -r hackapp/middleware/requirements.txt
+  pip install -r hackapp/mock_service/requirements.txt
+
+Or install individually:
+
+--- AGENT DEPENDENCIES ---
+pynput==1.7.6              # Global hotkey listening
+pyautogui==0.9.54          # UI automation (keyboard/mouse)
+pyperclip==1.8.2           # Clipboard management
+pygetwindow==0.0.9         # Window management
+requests==2.31.0           # HTTP client
+pydantic==2.5.3            # Data validation
+python-dotenv==1.0.0       # Environment configuration
+sounddevice==0.4.6         # Audio recording
+numpy==1.24.3              # Audio processing
+SpeechRecognition==3.10.0  # Speech-to-text
+
+--- MIDDLEWARE DEPENDENCIES ---
+fastapi==0.109.0           # Web framework
+uvicorn[standard]==0.27.0  # ASGI server
+pydantic==2.5.3            # Data validation
+pydantic-settings==2.1.0   # Settings management
+pyyaml==6.0.1              # YAML config parsing
+jinja2==3.1.3              # Template engine
+requests==2.31.0           # HTTP client
+httpx==0.26.0              # Async HTTP client
+jsonpath-ng==1.6.1         # JSON path extraction
+python-dotenv==1.0.0       # Environment configuration
+python-multipart==0.0.6    # File upload handling
+python-json-logger==2.0.7  # JSON logging
+sounddevice==0.4.6         # Audio processing
+numpy==1.24.3              # Audio processing
+SpeechRecognition==3.10.0  # Speech-to-text
+
+--- MOCK SERVICE DEPENDENCIES ---
+flask==3.0.0               # Web framework
+flask-cors==4.0.0          # CORS support
+faker==22.0.0              # Mock data generation
+
+================================================================================
+PYTHON LIBRARIES FOR VISUAL WORKFLOWS
+================================================================================
+
+For OCR (Optical Character Recognition):
+  pip install pytesseract pillow
+
+For Excel file handling:
+  pip install openpyxl pandas
+
+For advanced image processing:
+  pip install opencv-python
+
+================================================================================
+OPTIONAL DEPENDENCIES
+================================================================================
+
+For better development experience:
+  pip install pytest pytest-asyncio  # Testing
+  pip install black flake8           # Code formatting
+  pip install ipython                # Better Python REPL
+
+================================================================================
+ENVIRONMENT VARIABLES
+================================================================================
+
+Create a .env file in hackapp/ directory with:
+
+  # Groq API key for LLM formatting (get from https://console.groq.com/)
+  GROQ_API_KEY=your_groq_api_key_here
+
+  # Middleware configuration
+  MIDDLEWARE_URL=http://localhost:5000
+  MIDDLEWARE_TOKEN=hackathon_demo_token
+
+================================================================================
+QUICK INSTALL COMMAND
+================================================================================
+
+Full installation on Ubuntu/Debian WSL:
+
+# System dependencies
+sudo apt-get update
+sudo apt-get install -y portaudio19-dev python3-dev python3-pip
+
+# Python dependencies (with --break-system-packages for WSL)
+cd /path/to/Hackathon_HDF
+pip install -r hackapp/agent/requirements.txt --break-system-packages
+pip install -r hackapp/middleware/requirements.txt --break-system-packages
+pip install -r hackapp/mock_service/requirements.txt --break-system-packages
+
+# Optional: OCR and Excel support
+pip install pytesseract pillow openpyxl pandas --break-system-packages
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+1. If pynput fails:
+   - WSL users: You may need to run agent on Windows directly
+   - Install: pip install python-xlib (Linux)
+
+2. If sounddevice fails:
+   - Install: sudo apt-get install portaudio19-dev
+   - Then: pip install sounddevice --force-reinstall
+
+3. If "No module named 'middleware'" error:
+   - Always run from hackapp/ directory
+   - Set: export PYTHONPATH=/path/to/hackapp
+
+4. If network errors with Groq API:
+   - Check internet connectivity
+   - WSL: May need to configure DNS in /etc/resolv.conf
+   - Try: curl -v https://api.groq.com
+
+5. If "python-multipart" error:
+   - pip install python-multipart --break-system-packages
+
+================================================================================
+VERSION COMPATIBILITY
+================================================================================
+
+Tested with:
+  - Python: 3.12+
+  - Operating System: Ubuntu 22.04 (WSL2), Windows 11
+  - Node.js: Not required (pure Python project)
+
+================================================================================
