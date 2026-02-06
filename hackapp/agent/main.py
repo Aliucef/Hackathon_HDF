@@ -5,6 +5,7 @@ Main entry point for the agent application
 
 import sys
 import threading
+from datetime import datetime
 from hotkey_listener import HotkeyListener
 from context_capture import ContextCapture
 from inserter import FieldInserter
@@ -184,6 +185,7 @@ class HackAppAgent:
         """Handle visual workflow execution hotkey"""
         print("\n" + "=" * 70)
         print(f"🎨 Visual Workflow Triggered: {hotkey}")
+        print(f"   Timestamp: {datetime.now().strftime('%H:%M:%S.%f')[:-3]}")
         print("=" * 70)
 
         try:
@@ -191,6 +193,7 @@ class HackAppAgent:
             workflow_id = self.visual_workflows.get(hotkey)
             if not workflow_id:
                 print(f"   ❌ No workflow mapped to hotkey {hotkey}")
+                print(f"   Available hotkeys: {list(self.visual_workflows.keys())}")
                 return
 
             print(f"   Workflow: {workflow_id}")
@@ -198,6 +201,8 @@ class HackAppAgent:
 
             # Execute visual workflow
             result = self.middleware_client.execute_visual_workflow(workflow_id)
+
+            print(f"   📥 Received response from middleware")
 
             status = result.get('status')
             execution_time = result.get('execution_time_ms', 0)

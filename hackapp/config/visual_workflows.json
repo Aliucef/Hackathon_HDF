@@ -53,7 +53,7 @@
   {
     "workflow_id": "excel_lookup_auto",
     "name": "Excel Patient Lookup",
-    "description": "Search Patient ID in Excel, format with LLM, write to 2 field(s)",
+    "description": "Search Patient ID in Excel, write to 2 field(s)",
     "hotkey": "CTRL+ALT+E",
     "enabled": true,
     "steps": [
@@ -61,8 +61,8 @@
         "step_id": "1",
         "step_type": "read_coords",
         "name": "Read patient ID from screen",
-        "x": 213,
-        "y": 140,
+        "x": 211,
+        "y": 142,
         "width": 200,
         "height": 40,
         "extract_numbers": true,
@@ -72,10 +72,11 @@
         "step_id": "2",
         "step_type": "lookup_excel",
         "name": "Lookup patient data in Excel",
-        "file_path": "C:\\Users\\Aliuc\\Downloads\\patient_data.xlsx",
+        "file_path": "C:\\Users\\Aliuc\\OneDrive\\Desktop\\Hackathon_HDF\\hackapp\\data\\excel_uploads\\patient_data.xlsx",
         "search_column": "Patient ID",
         "search_value_variable": "patient_identifier",
         "return_columns": [
+          "Patient ID",
           "First Name",
           "Last Name",
           "Date of Birth",
@@ -91,41 +92,24 @@
       },
       {
         "step_id": "3",
-        "step_type": "format_with_llm",
-        "name": "Format data with Groq AI",
-        "input_variable": "patient_data",
-        "fields": [
-          {
-            "name": "Field 1",
-            "description": "first and last name , and age "
-          },
-          {
-            "name": "Field 2",
-            "description": "Gender,Diagnosis Text,ICD-10 Code,Admission Date,Attending Physician,Department, in a narrative way"
-          }
-        ],
-        "output_variable": "formatted_fields"
+        "step_type": "write_coords",
+        "name": "Write to Field 1",
+        "x": 759,
+        "y": 373,
+        "content_template": "Patient ID: {patient_data.Patient ID}, First Name: {patient_data.First Name}, Last Name: {patient_data.Last Name}, Date of Birth: {patient_data.Date of Birth}, Age: {patient_data.Age}, Gender: {patient_data.Gender}, Diagnosis Text: {patient_data.Diagnosis Text}, ICD-10 Code: {patient_data.ICD-10 Code}, Admission Date: {patient_data.Admission Date}, Attending Physician: {patient_data.Attending Physician}, Department: {patient_data.Department}",
+        "insert_method": "paste"
       },
       {
         "step_id": "4",
         "step_type": "write_coords",
-        "name": "Write to Field 1",
-        "x": 708,
-        "y": 362,
-        "content_template": "{formatted_fields.Field 1}",
-        "insert_method": "paste"
-      },
-      {
-        "step_id": "5",
-        "step_type": "write_coords",
         "name": "Write to Field 2",
-        "x": 574,
-        "y": 529,
-        "content_template": "{formatted_fields.Field 2}",
+        "x": 810,
+        "y": 566,
+        "content_template": "Patient ID: {patient_data.Patient ID}, First Name: {patient_data.First Name}, Last Name: {patient_data.Last Name}, Date of Birth: {patient_data.Date of Birth}, Age: {patient_data.Age}, Gender: {patient_data.Gender}, Diagnosis Text: {patient_data.Diagnosis Text}, ICD-10 Code: {patient_data.ICD-10 Code}, Admission Date: {patient_data.Admission Date}, Attending Physician: {patient_data.Attending Physician}, Department: {patient_data.Department}",
         "insert_method": "paste"
       }
     ],
-    "created_at": "2026-02-06T09:03:50.843644",
-    "updated_at": "2026-02-06T09:03:50.844013"
+    "created_at": "2026-02-06T11:01:57.183791",
+    "updated_at": "2026-02-06T11:01:57.184273"
   }
 ]

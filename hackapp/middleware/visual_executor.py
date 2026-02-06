@@ -22,6 +22,14 @@ class WorkflowExecutor:
     def __init__(self):
         self.variables: Dict[str, Any] = {}
 
+        # Disable pyautogui failsafe to prevent accidental stops
+        try:
+            import pyautogui
+            pyautogui.FAILSAFE = False
+            pyautogui.PAUSE = 0.1  # Small pause between actions
+        except ImportError:
+            pass
+
     def execute(self, workflow: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute a complete visual workflow
@@ -32,11 +40,20 @@ class WorkflowExecutor:
         Returns:
             Execution result with status and variables
         """
+        # Reset state for fresh execution
         self.variables = {}
         results = []
         start_time = time.time()
 
         try:
+            # Ensure pyautogui is in clean state
+            try:
+                import pyautogui
+                # Reset any held keys/buttons
+                pyautogui.FAILSAFE = False
+            except:
+                pass
+
             for step in workflow["steps"]:
                 if not step.get("enabled", True):
                     continue
@@ -45,6 +62,8 @@ class WorkflowExecutor:
                 results.append(step_result)
 
                 if step_result["status"] == "error":
+                    # Clean up on error
+                    self._cleanup_resources()
                     return {
                         "status": "error",
                         "error": step_result.get("error"),
@@ -52,6 +71,9 @@ class WorkflowExecutor:
                         "execution_time_ms": int((time.time() - start_time) * 1000),
                         "variables": self.variables
                     }
+
+            # Clean up after successful execution
+            self._cleanup_resources()
 
             return {
                 "status": "success",
@@ -61,12 +83,28 @@ class WorkflowExecutor:
             }
 
         except Exception as e:
+            # Clean up on unexpected error
+            self._cleanup_resources()
+            print(f"   ❌ Unexpected execution error: {e}")
+            import traceback
+            traceback.print_exc()
             return {
                 "status": "error",
                 "error": str(e),
                 "execution_time_ms": int((time.time() - start_time) * 1000),
                 "variables": self.variables
             }
+
+    def _cleanup_resources(self):
+        """Clean up any held resources to prepare for next execution"""
+        try:
+            import pyautogui
+            # Release any held keys
+            pyautogui.keyUp('ctrl')
+            pyautogui.keyUp('alt')
+            pyautogui.keyUp('shift')
+        except:
+            pass
 
     def _execute_step(self, step: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a single step"""
@@ -219,8 +257,10 @@ class WorkflowExecutor:
 
             search_value = self.variables[search_value_var]
 
-            # Read Excel
-            df = pd.read_excel(file_path, sheet_name=sheet_name)
+            # Read Excel with explicit file handle management
+            # Use ExcelFile context manager to ensure proper cleanup
+            with pd.ExcelFile(file_path, engine='openpyxl') as xls:
+                df = pd.read_excel(xls, sheet_name=sheet_name)
 
             # Search for row
             mask = df[search_column].astype(str).str.contains(str(search_value), case=False, na=False)
@@ -250,6 +290,8 @@ class WorkflowExecutor:
 
             # Store in variables
             self.variables[output_var] = result
+
+            print(f"   ✅ Excel lookup successful: found {len(result)} fields")
 
             return {
                 "step_id": step["step_id"],
@@ -302,6 +344,14 @@ class WorkflowExecutor:
             # Render template with variables
             content = self._render_template(content_template)
 
+            # Backup clipboard if using paste method
+            original_clipboard = None
+            if insert_method == "paste":
+                try:
+                    original_clipboard = pyperclip.paste()
+                except:
+                    pass  # Ignore clipboard backup errors
+
             # Click coordinates
             pyautogui.click(x, y)
             time.sleep(0.3)
@@ -310,6 +360,14 @@ class WorkflowExecutor:
             if insert_method == "paste":
                 pyperclip.copy(content)
                 pyautogui.hotkey('ctrl', 'v')
+                time.sleep(0.2)
+
+                # Restore original clipboard to avoid interference with next workflow
+                if original_clipboard is not None:
+                    try:
+                        pyperclip.copy(original_clipboard)
+                    except:
+                        pass  # Ignore restore errors
             else:
                 pyautogui.write(content, interval=0.05)
 
@@ -322,6 +380,8 @@ class WorkflowExecutor:
                     if key:
                         pyautogui.press(key)
                         time.sleep(0.1)
+
+            print(f"   ✅ Content written to ({x}, {y})")
 
             return {
                 "step_id": step["step_id"],

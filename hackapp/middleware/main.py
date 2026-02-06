@@ -124,11 +124,81 @@ async def startup_event():
         print(f"   🚀 API: http://localhost:5000")
         print("=" * 70 + "\n")
 
+        # Auto-start agent
+        print("🤖 Starting agent automatically...")
+        try:
+            await _auto_start_agent()
+        except Exception as e:
+            print(f"⚠️  Failed to auto-start agent: {e}")
+            print("   You can start it manually if needed")
+
     except Exception as e:
         print(f"\n❌ Startup failed: {e}")
         import traceback
         traceback.print_exc()
         raise
+
+
+async def _auto_start_agent():
+    """Helper function to auto-start agent on middleware startup"""
+    global agent_process, agent_start_time
+    import subprocess
+    import sys
+    import platform
+
+    # Get the path to the agent main.py
+    agent_path = Path(__file__).parent.parent / "agent" / "main.py"
+
+    if not agent_path.exists():
+        print(f"   ⚠️  Agent script not found: {agent_path}")
+        return
+
+    # Set up environment with PYTHONPATH
+    agent_env = os.environ.copy()
+    hackapp_dir = str(agent_path.parent.parent)
+
+    # Add hackapp directory to PYTHONPATH
+    if 'PYTHONPATH' in agent_env:
+        agent_env['PYTHONPATH'] = f"{hackapp_dir}{os.pathsep}{agent_env['PYTHONPATH']}"
+    else:
+        agent_env['PYTHONPATH'] = hackapp_dir
+
+    # Force UTF-8 encoding for Windows console
+    agent_env['PYTHONIOENCODING'] = 'utf-8'
+
+    # Windows-specific setup
+    startupinfo = None
+    creationflags = 0
+    if platform.system() == 'Windows':
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        creationflags = 0x08000000  # CREATE_NO_WINDOW
+
+    # Start agent process - don't capture stdout/stderr to avoid pipe blocking
+    # Agent output will print directly to middleware console
+    agent_process = subprocess.Popen(
+        [sys.executable, "-u", str(agent_path)],
+        cwd=hackapp_dir,
+        env=agent_env,
+        stdout=None,  # Inherit from parent (middleware console)
+        stderr=None,  # Inherit from parent (middleware console)
+        startupinfo=startupinfo,
+        creationflags=creationflags
+    )
+
+    agent_start_time = datetime.now()
+
+    # Give it a moment to start
+    import asyncio
+    await asyncio.sleep(1.0)  # Longer delay to let agent initialize
+
+    if agent_process.poll() is not None:
+        print(f"   ❌ Agent crashed immediately (exit code: {agent_process.returncode})")
+        agent_process = None
+        agent_start_time = None
+    else:
+        print(f"   ✅ Agent started successfully with PID: {agent_process.pid}")
+        print(f"   📝 Agent output will appear below:")
 
 
 @app.on_event("shutdown")
@@ -799,10 +869,8 @@ async def start_agent(authorization: str = Header(None)):
             [sys.executable, "-u", str(agent_path)],  # -u for unbuffered output
             cwd=hackapp_dir,  # Run from hackapp/ directory
             env=agent_env,  # Pass modified environment
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,  # Line buffered
+            stdout=None,  # Inherit from parent (don't capture to avoid blocking)
+            stderr=None,  # Inherit from parent
             startupinfo=startupinfo,
             creationflags=creationflags
         )
@@ -811,18 +879,16 @@ async def start_agent(authorization: str = Header(None)):
 
         # Give it a moment to start and check if it immediately crashes
         import asyncio
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(1.0)
 
         if agent_process.poll() is not None:
             # Process died immediately
-            stdout, stderr = agent_process.communicate()
-            error_msg = stderr if stderr else stdout
-            print(f"❌ Agent crashed immediately: {error_msg}")
+            print(f"❌ Agent crashed immediately (exit code: {agent_process.returncode})")
             agent_process = None
             agent_start_time = None
             raise HTTPException(
                 status_code=500,
-                detail=f"Agent crashed immediately after start. Error: {error_msg[:500]}"
+                detail=f"Agent crashed immediately after start (exit code: {agent_process.returncode})"
             )
 
         print(f"✅ Agent started successfully with PID: {agent_process.pid}")

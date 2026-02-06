@@ -337,24 +337,10 @@
         </div>
 
         <div class="right">
-            <div class="pill" id="agentStatusPill">
-                <strong>Assistant:</strong>
-                <span id="agentStatusText" style="color: var(--muted);">●</span>
-                <span id="agentStatusLabel">Checking...</span>
+            <div class="pill">
+                <strong>System:</strong>
+                <span style="color: var(--ok);">●</span> Ready
             </div>
-            <button id="agentToggleBtn" onclick="toggleAgent()" style="
-                background: var(--accent);
-                color: white;
-                border: 1px solid var(--line2);
-                padding: 4px 12px;
-                border-radius: 3px;
-                font-size: 12px;
-                font-weight: 600;
-                cursor: pointer;
-                box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
-            ">
-                Loading...
-            </button>
         </div>
     </div>
 
@@ -491,10 +477,6 @@
 const API_URL = 'http://localhost:5000';
 const AUTH_TOKEN = 'Bearer hackathon_demo_token';
 
-// Agent state
-let agentRunning = false;
-let agentCheckInterval = null;
-
 // Update time in status bar
 function updateTime() {
     const now = new Date();
@@ -538,113 +520,6 @@ async function loadStats() {
     }
 }
 
-// Check agent status
-async function checkAgentStatus() {
-    try {
-        const response = await fetch(`${API_URL}/api/agent/status`, {
-            headers: { 'Authorization': AUTH_TOKEN }
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            updateAgentUI(data.running, data.uptime_seconds, data.last_error);
-        } else {
-            updateAgentUI(false, 0, null);
-        }
-    } catch (error) {
-        console.error('Failed to check agent status:', error);
-        updateAgentUI(false, 0, null);
-    }
-}
-
-// Update agent UI
-function updateAgentUI(running, uptimeSeconds, lastError) {
-    agentRunning = running;
-
-    const statusText = document.getElementById('agentStatusText');
-    const statusLabel = document.getElementById('agentStatusLabel');
-    const toggleBtn = document.getElementById('agentToggleBtn');
-
-    if (running) {
-        statusText.style.color = 'var(--ok)';
-        statusText.textContent = '●';
-
-        const uptime = Math.floor(uptimeSeconds);
-        const minutes = Math.floor(uptime / 60);
-        const seconds = uptime % 60;
-        const uptimeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-
-        statusLabel.textContent = `Active (${uptimeStr})`;
-        statusLabel.title = 'Assistant is active and monitoring keyboard shortcuts';
-
-        toggleBtn.textContent = 'Turn Off';
-        toggleBtn.style.background = 'var(--danger)';
-        toggleBtn.disabled = false;
-    } else {
-        statusText.style.color = 'var(--muted)';
-        statusText.textContent = '●';
-
-        if (lastError) {
-            statusLabel.textContent = 'Error';
-            statusLabel.title = `Could not start: ${lastError}`;
-            statusLabel.style.color = 'var(--danger)';
-        } else {
-            statusLabel.textContent = 'Inactive';
-            statusLabel.title = 'Assistant is not running';
-            statusLabel.style.color = 'inherit';
-        }
-
-        toggleBtn.textContent = 'Turn On';
-        toggleBtn.style.background = 'var(--ok)';
-        toggleBtn.disabled = false;
-    }
-}
-
-// Toggle agent on/off
-async function toggleAgent() {
-    const toggleBtn = document.getElementById('agentToggleBtn');
-    const statusLabel = document.getElementById('agentStatusLabel');
-
-    toggleBtn.disabled = true;
-    const action = agentRunning ? 'stop' : 'start';
-    toggleBtn.textContent = action === 'stop' ? 'Turning Off...' : 'Turning On...';
-
-    try {
-        const response = await fetch(`${API_URL}/api/agent/${action}`, {
-            method: 'POST',
-            headers: { 'Authorization': AUTH_TOKEN }
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            console.log('Assistant action result:', data);
-
-            if (data.status === 'already_running') {
-                statusLabel.textContent = 'Already Active';
-            }
-
-            // Immediately check status after a short delay
-            setTimeout(checkAgentStatus, 500);
-        } else {
-            const error = await response.json();
-            const errorMsg = error.detail || error.error || 'Unknown error';
-
-            console.error(`Failed to ${action} assistant:`, errorMsg);
-
-            // Show error in UI
-            alert(`Could not ${action === 'start' ? 'activate' : 'deactivate'} the clinical assistant.\n\n${errorMsg}\n\nPlease contact support if this problem persists.`);
-
-            toggleBtn.disabled = false;
-            toggleBtn.textContent = agentRunning ? 'Turn Off' : 'Turn On';
-        }
-    } catch (error) {
-        console.error('Failed to toggle assistant:', error);
-        alert(`Connection error: ${error.message}\n\nPlease check your network connection.`);
-        toggleBtn.disabled = false;
-        toggleBtn.textContent = agentRunning ? 'Turn Off' : 'Turn On';
-    }
-}
-
 // Navigate to feature
 function openFeature(feature) {
     if (feature === 'excel') {
@@ -655,12 +530,7 @@ function openFeature(feature) {
 // Initialize on page load
 updateTime();
 setInterval(updateTime, 1000);
-
 loadStats();
-
-// Check agent status immediately and then every 2 seconds
-checkAgentStatus();
-agentCheckInterval = setInterval(checkAgentStatus, 2000);
 </script>
 
 </body>
