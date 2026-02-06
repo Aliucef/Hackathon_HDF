@@ -21,3 +21,8 @@ pydantic==2.5.3
 
 # Configuration
 python-dotenv==1.0.0
+
+# Audio recording for voice workflows
+sounddevice==0.4.6
+numpy==1.24.3
+SpeechRecognition==3.10.0

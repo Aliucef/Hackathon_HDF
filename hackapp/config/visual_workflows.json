@@ -154,5 +154,65 @@
     ],
     "created_at": "2026-02-06T11:12:48.145888",
     "updated_at": "2026-02-06T11:12:48.146232"
+  },
+  {
+    "workflow_id": "voice_recording_auto",
+    "name": "Voice Recording",
+    "description": "Record audio, format with LLM, write to 2 field(s)",
+    "hotkey": "CTRL+ALT+R",
+    "enabled": true,
+    "steps": [
+      {
+        "step_id": "1",
+        "step_type": "record_audio",
+        "name": "Record audio until hotkey pressed again",
+        "output_variable": "audio_file"
+      },
+      {
+        "step_id": "2",
+        "step_type": "transcribe_audio",
+        "name": "Transcribe audio to text",
+        "input_variable": "audio_file",
+        "language": "en-US",
+        "output_variable": "transcription"
+      },
+      {
+        "step_id": "3",
+        "step_type": "format_with_llm",
+        "name": "Format transcription with AI",
+        "input_variable": "transcription",
+        "fields": [
+          {
+            "name": "PATIENT name",
+            "description": "patient name"
+          },
+          {
+            "name": "patient history",
+            "description": "this should tell what the patient is facing currently in a narrative way , and some suggested diagnoses"
+          }
+        ],
+        "output_variable": "formatted_fields"
+      },
+      {
+        "step_id": "4",
+        "step_type": "write_coords",
+        "name": "Write to PATIENT name",
+        "x": 714,
+        "y": 379,
+        "content_template": "{formatted_fields.PATIENT name}",
+        "insert_method": "paste"
+      },
+      {
+        "step_id": "5",
+        "step_type": "write_coords",
+        "name": "Write to patient history",
+        "x": 694,
+        "y": 533,
+        "content_template": "{formatted_fields.patient history}",
+        "insert_method": "paste"
+      }
+    ],
+    "created_at": "2026-02-06T11:45:18.496975",
+    "updated_at": "2026-02-06T11:45:18.497358"
   }
 ]

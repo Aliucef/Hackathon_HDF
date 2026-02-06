@@ -143,12 +143,13 @@ class MiddlewareClient:
             print(f"⚠️  Could not list visual workflows: {e}")
             return None
 
-    def execute_visual_workflow(self, workflow_id: str) -> dict:
+    def execute_visual_workflow(self, workflow_id: str, initial_variables: dict = None) -> dict:
         """
         Execute a visual workflow
 
         Args:
             workflow_id: Workflow ID to execute
+            initial_variables: Optional dict of variables to pass to workflow (e.g., transcription)
 
         Returns:
             Execution result dictionary
@@ -158,9 +159,14 @@ class MiddlewareClient:
         """
         url = f"{self.base_url}/api/visual-workflows/{workflow_id}/execute"
 
+        payload = {}
+        if initial_variables:
+            payload['initial_variables'] = initial_variables
+
         try:
             response = self.session.post(
                 url,
+                json=payload if payload else None,
                 timeout=self.timeout
             )
 

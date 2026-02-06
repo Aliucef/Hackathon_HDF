@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Recording - Clinical Assistant</title>
+    <style>
+        :root{
+            --bg: #d9e0ea;
+            --panel: #e9eef6;
+            --panel2: #eef3fb;
+            --line: #9fb0c6;
+            --line2:#b7c5d8;
+            --title: #2f4d79;
+            --shadow: rgba(0,0,0,.08);
+            --accent: #2f72d6;
+            --danger:#c74141;
+            --ok:#2aa86c;
+            --warning:#e89f3c;
+            --muted:#6b7a90;
+            --font: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        }
+
+        *{ box-sizing:border-box; margin:0; padding:0; }
+
+        body{
+            font-family:var(--font);
+            background:#f2f4f7;
+            color:#17212b;
+        }
+
+        .app{
+            width:min(900px, 96vw);
+            margin:20px auto;
+            background:var(--bg);
+            border:1px solid var(--line);
+            box-shadow:0 12px 28px var(--shadow);
+        }
+
+        .topbar{
+            background:linear-gradient(#d7e0ee, #c4d1e6);
+            border-bottom:1px solid var(--line);
+            padding:14px 18px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        }
+
+        .topbar h1{
+            font-size:18px;
+            font-weight:700;
+            color:var(--title);
+        }
+
+        .back-btn{
+            background:var(--panel);
+            border:1px solid var(--line2);
+            padding:6px 14px;
+            border-radius:3px;
+            font-size:12px;
+            font-weight:600;
+            color:var(--title);
+            text-decoration:none;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+        }
+
+        .back-btn:hover{
+            background:var(--panel2);
+        }
+
+        .content{
+            padding:20px;
+        }
+
+        .section{
+            background:var(--panel);
+            border:1px solid var(--line2);
+            margin-bottom:16px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.55);
+        }
+
+        .sectionHeader{
+            background:linear-gradient(#cfd9ea,#b8c7de);
+            border-bottom:1px solid var(--line2);
+            padding:10px 14px;
+            font-size:13px;
+            font-weight:700;
+            color:var(--title);
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        }
+
+        .sectionBody{
+            padding:16px;
+            background:var(--panel2);
+        }
+
+        .form-row{
+            margin-bottom:14px;
+        }
+
+        .form-label{
+            display:block;
+            font-size:12px;
+            font-weight:600;
+            color:var(--title);
+            margin-bottom:6px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea{
+            width:100%;
+            padding:8px 10px;
+            border:1px solid var(--line2);
+            border-radius:3px;
+            font-size:12px;
+            font-family:var(--font);
+            background:#fff;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,.05);
+        }
+
+        textarea{
+            min-height:60px;
+            resize:vertical;
+        }
+
+        .btn{
+            background:var(--accent);
+            color:white;
+            border:1px solid var(--line2);
+            padding:8px 16px;
+            border-radius:3px;
+            font-size:12px;
+            font-weight:600;
+            cursor:pointer;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.2);
+        }
+
+        .btn:hover{
+            opacity:0.9;
+        }
+
+        .btn:disabled{
+            opacity:0.5;
+            cursor:not-allowed;
+        }
+
+        .btn-danger{
+            background:var(--danger);
+        }
+
+        .btn-success{
+            background:var(--ok);
+        }
+
+        .alert{
+            padding:12px;
+            border-radius:3px;
+            margin-bottom:12px;
+            font-size:12px;
+            border:1px solid;
+        }
+
+        .alert-success{
+            background:#e8f5f0;
+            border-color:var(--ok);
+            color:#1e7045;
+        }
+
+        .alert-error{
+            background:#ffe8e8;
+            border-color:var(--danger);
+            color:#7a1d1d;
+        }
+
+        .field-list{
+            border:1px solid var(--line2);
+            border-radius:3px;
+            background:#fff;
+            padding:8px;
+            max-height:300px;
+            overflow-y:auto;
+        }
+
+        .field-item{
+            padding:10px;
+            border:1px solid var(--line2);
+            border-radius:3px;
+            margin-bottom:8px;
+            background:var(--panel2);
+            display:flex;
+            justify-content:space-between;
+            align-items:start;
+        }
+
+        .field-info{
+            flex:1;
+        }
+
+        .field-name{
+            font-weight:700;
+            font-size:12px;
+            color:var(--title);
+            margin-bottom:4px;
+        }
+
+        .field-desc{
+            font-size:11px;
+            color:var(--muted);
+            margin-bottom:4px;
+        }
+
+        .field-coords{
+            font-size:10px;
+            color:var(--muted);
+            font-family:monospace;
+        }
+
+        .statusbar{
+            background:linear-gradient(#d7e0ee,#c4d1e6);
+            border-top:1px solid var(--line);
+            padding:8px 18px;
+            font-size:11px;
+            color:var(--muted);
+            text-align:center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <div class="topbar">
+        <h1>🎤 Voice Recording Configuration</h1>
+        <a href="/" class="back-btn">← Back to Dashboard</a>
+    </div>
+
+    <div class="content">
+        <div id="alertContainer"></div>
+
+        <!-- Step 1: Hotkey Configuration -->
+        <div class="section">
+            <div class="sectionHeader">
+                <span>Step 1: Hotkey Configuration</span>
+                <span style="font-size:11px; font-weight:600; color:var(--muted);">Toggle Recording</span>
+            </div>
+            <div class="sectionBody">
+                <div class="form-row">
+                    <label class="form-label">Recording Hotkey (press once to start, again to stop)</label>
+                    <input type="text" id="recordingHotkey" placeholder="e.g., CTRL+ALT+R" maxlength="20">
+                    <div style="font-size:10px; color:var(--muted); margin-top:4px;">
+                        First press starts recording, second press stops and processes
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <label class="form-label">
+                        <input type="checkbox" id="enableLLM" checked style="width:auto; margin-right:6px;">
+                        Enable Smart Formatting with Groq AI (Llama 3.3)
+                    </label>
+                    <div style="font-size:10px; color:var(--muted); margin-top:4px;">
+                        🤖 LLM will format transcribed text based on field descriptions<br>
+                        📝 Provide clear descriptions for best results
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Output Fields -->
+        <div class="section">
+            <div class="sectionHeader">
+                <span>Step 2: Output Fields</span>
+                <button class="btn btn-success" onclick="addField()" style="font-size:11px; padding:4px 12px;">+ Add Field</button>
+            </div>
+            <div class="sectionBody">
+                <div id="fieldsList" class="field-list">
+                    <div style="text-align:center; padding:20px; color:var(--muted); font-size:12px;">
+                        No fields configured. Click "+ Add Field" to start.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Save -->
+        <div class="section">
+            <div class="sectionHeader">
+                <span>Step 3: Save & Activate</span>
+            </div>
+            <div class="sectionBody">
+                <button id="saveBtn" class="btn" onclick="saveWorkflow()">💾 Save Workflow</button>
+                <div style="font-size:10px; color:var(--muted); margin-top:8px;">
+                    After saving, press your hotkey once to start recording, and once more to stop and process.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="statusbar">
+        Voice Recording • Press CTRL+ALT+C to pick field coordinates
+    </div>
+</div>
+
+<!-- Field Modal (hidden by default) -->
+<div id="fieldModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; padding:40px;">
+    <div style="max-width:500px; margin:0 auto; background:var(--bg); border:1px solid var(--line); border-radius:6px; box-shadow:0 12px 28px var(--shadow);">
+        <div class="sectionHeader">
+            <span id="modalTitle">Add Field</span>
+            <button onclick="closeFieldModal()" style="background:none; border:none; font-size:18px; cursor:pointer; color:var(--muted);">×</button>
+        </div>
+        <div class="sectionBody">
+            <div class="form-row">
+                <label class="form-label">Field Name</label>
+                <input type="text" id="fieldName" placeholder="e.g., Chief Complaint">
+            </div>
+            <div class="form-row">
+                <label class="form-label">Field Description (for LLM formatting)</label>
+                <textarea id="fieldDescription" placeholder="e.g., Primary reason for patient visit, concise summary"></textarea>
+            </div>
+            <div class="form-row">
+                <label class="form-label">Coordinates</label>
+                <button id="pickCoordsBtn" class="btn" onclick="pickFieldCoords()">
+                    📍 Pick Coordinates (CTRL+ALT+C)
+                </button>
+                <div id="coordsDisplay" style="font-size:11px; color:var(--muted); margin-top:6px;"></div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:16px;">
+                <button class="btn btn-success" onclick="saveField()">Save Field</button>
+                <button class="btn" onclick="closeFieldModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_URL = 'http://localhost:5000';
+const AUTH_TOKEN = 'Bearer hackathon_demo_token';
+
+let fields = [];
+let currentField = null;
+let pickingSession = null;
+
+function showAlert(type, message) {
+    const container = document.getElementById('alertContainer');
+    container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+    setTimeout(() => container.innerHTML = '', 5000);
+}
+
+function addField() {
+    currentField = { name: '', description: '', coords: null };
+    document.getElementById('fieldName').value = '';
+    document.getElementById('fieldDescription').value = '';
+    document.getElementById('coordsDisplay').textContent = '';
+    document.getElementById('modalTitle').textContent = 'Add Field';
+    document.getElementById('fieldModal').style.display = 'block';
+}
+
+function closeFieldModal() {
+    document.getElementById('fieldModal').style.display = 'none';
+    currentField = null;
+}
+
+async function pickFieldCoords() {
+    const sessionId = 'voice_field_' + Date.now();
+    pickingSession = sessionId;
+
+    document.getElementById('pickCoordsBtn').textContent = '⏳ Waiting for coordinates...';
+    document.getElementById('pickCoordsBtn').disabled = true;
+
+    try {
+        const response = await fetch(`${API_URL}/api/picker/activate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': AUTH_TOKEN
+            },
+            body: JSON.stringify({
+                session_id: sessionId,
+                field_name: 'voice_field'
+            })
+        });
+
+        if (response.ok) {
+            pollCoordinates(sessionId);
+        }
+    } catch (error) {
+        console.error('Failed to activate picker:', error);
+        document.getElementById('pickCoordsBtn').textContent = '📍 Pick Coordinates (CTRL+ALT+C)';
+        document.getElementById('pickCoordsBtn').disabled = false;
+    }
+}
+
+async function pollCoordinates(sessionId) {
+    const checkStatus = async () => {
+        if (pickingSession !== sessionId) return;
+
+        try {
+            const response = await fetch(`${API_URL}/api/picker/status/${sessionId}`, {
+                headers: { 'Authorization': AUTH_TOKEN }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.status === 'completed' && data.coordinates) {
+                    currentField.coords = data.coordinates;
+                    document.getElementById('coordsDisplay').textContent =
+                        `Coordinates set: (${data.coordinates.x}, ${data.coordinates.y})`;
+                    document.getElementById('pickCoordsBtn').textContent = '✓ Coordinates Set';
+                    document.getElementById('pickCoordsBtn').disabled = false;
+                    pickingSession = null;
+                    return;
+                }
+            }
+
+            setTimeout(checkStatus, 500);
+        } catch (error) {
+            console.error('Polling error:', error);
+            document.getElementById('pickCoordsBtn').textContent = '📍 Pick Coordinates (CTRL+ALT+C)';
+            document.getElementById('pickCoordsBtn').disabled = false;
+            pickingSession = null;
+        }
+    };
+
+    checkStatus();
+}
+
+function saveField() {
+    const name = document.getElementById('fieldName').value.trim();
+    const description = document.getElementById('fieldDescription').value.trim();
+
+    if (!name) {
+        showAlert('error', 'Please provide a field name');
+        return;
+    }
+
+    if (!currentField.coords) {
+        showAlert('error', 'Please pick coordinates for this field');
+        return;
+    }
+
+    const enableLLM = document.getElementById('enableLLM').checked;
+    if (enableLLM && !description) {
+        showAlert('error', 'Please provide a description (required for LLM formatting)');
+        return;
+    }
+
+    fields.push({
+        name: name,
+        description: description,
+        coords: currentField.coords
+    });
+
+    renderFields();
+    closeFieldModal();
+    showAlert('success', `Field "${name}" added successfully`);
+}
+
+function renderFields() {
+    const container = document.getElementById('fieldsList');
+
+    if (fields.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:20px; color:var(--muted); font-size:12px;">
+                No fields configured. Click "+ Add Field" to start.
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = fields.map((field, index) => `
+        <div class="field-item">
+            <div class="field-info">
+                <div class="field-name">${field.name}</div>
+                <div class="field-desc">${field.description || '(no description)'}</div>
+                <div class="field-coords">Coords: (${field.coords.x}, ${field.coords.y})</div>
+            </div>
+            <button class="btn btn-danger" onclick="removeField(${index})" style="font-size:11px; padding:4px 10px;">Remove</button>
+        </div>
+    `).join('');
+}
+
+function removeField(index) {
+    fields.splice(index, 1);
+    renderFields();
+}
+
+async function saveWorkflow() {
+    const hotkey = document.getElementById('recordingHotkey').value.trim().toUpperCase();
+    const enableLLM = document.getElementById('enableLLM').checked;
+
+    if (!hotkey) {
+        showAlert('error', 'Please specify a recording hotkey');
+        return;
+    }
+
+    if (fields.length === 0) {
+        showAlert('error', 'Please add at least one output field');
+        return;
+    }
+
+    // Build workflow steps
+    const steps = [
+        {
+            step_id: '1',
+            step_type: 'record_audio',
+            name: 'Record audio until hotkey pressed again',
+            output_variable: 'audio_file'
+        },
+        {
+            step_id: '2',
+            step_type: 'transcribe_audio',
+            name: 'Transcribe audio to text',
+            input_variable: 'audio_file',
+            language: 'en-US',
+            output_variable: 'transcription'
+        }
+    ];
+
+    let stepCounter = 3;
+
+    // Add LLM formatting if enabled
+    if (enableLLM) {
+        steps.push({
+            step_id: stepCounter.toString(),
+            step_type: 'format_with_llm',
+            name: 'Format transcription with AI',
+            input_variable: 'transcription',
+            fields: fields.map(f => ({
+                name: f.name,
+                description: f.description
+            })),
+            output_variable: 'formatted_fields'
+        });
+        stepCounter++;
+    }
+
+    // Add write steps for each field
+    fields.forEach((field, index) => {
+        const contentTemplate = enableLLM
+            ? `{formatted_fields.${field.name}}`
+            : `{transcription}`;
+
+        steps.push({
+            step_id: stepCounter.toString(),
+            step_type: 'write_coords',
+            name: `Write to ${field.name}`,
+            x: field.coords.x,
+            y: field.coords.y,
+            content_template: contentTemplate,
+            insert_method: 'paste'
+        });
+
+        stepCounter++;
+    });
+
+    const workflow = {
+        workflow_id: 'voice_recording_auto',
+        name: 'Voice Recording',
+        description: `Record audio, ${enableLLM ? 'format with LLM, ' : ''}write to ${fields.length} field(s)`,
+        hotkey: hotkey,
+        enabled: true,
+        steps: steps
+    };
+
+    try {
+        document.getElementById('saveBtn').disabled = true;
+        document.getElementById('saveBtn').textContent = '💾 Saving...';
+
+        // Check if workflow exists
+        const checkResponse = await fetch(`${API_URL}/api/visual-workflows/voice_recording_auto`, {
+            headers: { 'Authorization': AUTH_TOKEN }
+        });
+
+        let response;
+        if (checkResponse.ok) {
+            // Workflow exists, update it
+            response = await fetch(`${API_URL}/api/visual-workflows/voice_recording_auto`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': AUTH_TOKEN
+                },
+                body: JSON.stringify(workflow)
+            });
+        } else {
+            // Workflow doesn't exist, create it
+            response = await fetch(`${API_URL}/api/visual-workflows`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': AUTH_TOKEN
+                },
+                body: JSON.stringify(workflow)
+            });
+        }
+
+        if (response.ok) {
+            showAlert('success', `Workflow saved! Press ${hotkey} to start/stop recording.`);
+        } else {
+            const error = await response.json();
+            showAlert('error', `Failed to save: ${error.detail || 'Unknown error'}`);
+        }
+    } catch (error) {
+        showAlert('error', `Error: ${error.message}`);
+    } finally {
+        document.getElementById('saveBtn').disabled = false;
+        document.getElementById('saveBtn').textContent = '💾 Save Workflow';
+    }
+}
+
+// Load existing workflow on page load
+async function loadExistingWorkflow() {
+    try {
+        const response = await fetch(`${API_URL}/api/visual-workflows/voice_recording_auto`, {
+            headers: { 'Authorization': AUTH_TOKEN }
+        });
+
+        if (response.ok) {
+            const workflow = await response.json();
+
+            // Load hotkey
+            document.getElementById('recordingHotkey').value = workflow.hotkey || '';
+
+            // Check if LLM step exists
+            const hasLLM = workflow.steps.some(s => s.step_type === 'format_with_llm');
+            document.getElementById('enableLLM').checked = hasLLM;
+
+            // Load fields from write_coords steps
+            fields = [];
+            const writeSteps = workflow.steps.filter(s => s.step_type === 'write_coords');
+            const llmStep = workflow.steps.find(s => s.step_type === 'format_with_llm');
+
+            writeSteps.forEach(step => {
+                const fieldName = step.name.replace('Write to ', '');
+                const fieldInfo = llmStep?.fields?.find(f => f.name === fieldName);
+
+                fields.push({
+                    name: fieldName,
+                    description: fieldInfo?.description || '',
+                    coords: { x: step.x, y: step.y }
+                });
+            });
+
+            renderFields();
+        }
+    } catch (error) {
+        console.error('Failed to load existing workflow:', error);
+    }
+}
+
+loadExistingWorkflow();
+</script>
+
+</body>
+</html>

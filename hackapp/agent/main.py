@@ -11,6 +11,7 @@ from context_capture import ContextCapture
 from inserter import FieldInserter
 from middleware_client import MiddlewareClient, MiddlewareError
 from picker import pick_coordinates
+from audio_recorder import AudioRecorder
 import config
 
 
@@ -52,6 +53,16 @@ class HackAppAgent:
         # Visual workflows hotkey listener (loaded dynamically)
         self.visual_workflow_listener = None
         self.visual_workflows = {}  # Map hotkey -> workflow_id
+
+        # Voice recording hotkey listener (CTRL+ALT+R)
+        self.voice_listener = HotkeyListener(
+            hotkeys={'<ctrl>+<alt>+r': 'CTRL+ALT+R'},
+            callback=self.on_voice_hotkey_pressed
+        )
+
+        # Audio recorder for voice workflows
+        self.audio_recorder = AudioRecorder()
+        self.audio_recorder.on_transcription_complete = self.on_transcription_complete
 
         # Coordinate picking state
         self.picking_active = False
@@ -117,6 +128,9 @@ class HackAppAgent:
         # Start coordinate picker hotkey listener
         self.picker_listener.start()
 
+        # Start voice recording hotkey listener
+        self.voice_listener.start()
+
         print("\n" + "=" * 70)
         print("✅ HackApp Agent is Ready!")
         print("=" * 70)
@@ -128,6 +142,9 @@ class HackAppAgent:
         print("      2. Press workflow hotkey (e.g., CTRL+ALT+V)")
         print("\n   🎨 Visual Workflows:")
         print("      Press configured hotkey (e.g., CTRL+ALT+E) to execute")
+        print("\n   🎤 Voice Recording:")
+        print("      Press CTRL+ALT+R to start recording")
+        print("      Press CTRL+ALT+R again to stop and process")
         print("\n🛑 Press Ctrl+C to exit")
         print("=" * 70 + "\n")
 
@@ -142,9 +159,91 @@ class HackAppAgent:
         print("\n\n🛑 Shutting down HackApp Agent...")
         self.hotkey_listener.stop()
         self.picker_listener.stop()
+        self.voice_listener.stop()
         if self.visual_workflow_listener:
             self.visual_workflow_listener.stop()
         print("✅ Agent stopped\n")
+
+    def on_voice_hotkey_pressed(self, hotkey: str):
+        """Handle voice recording toggle hotkey (CTRL+ALT+R)"""
+        print("\n" + "=" * 70)
+        print(f"🎤 Voice Recording Toggle: {hotkey}")
+        print(f"   Timestamp: {datetime.now().strftime('%H:%M:%S.%f')[:-3]}")
+        print("=" * 70)
+
+        if self.audio_recorder.is_recording:
+            # Stop recording
+            print("   ⏹️  Stopping recording...")
+            self.audio_recorder.stop_recording()
+        else:
+            # Start recording
+            print("   🔴 Starting recording...")
+            if self.audio_recorder.start_recording():
+                print("   ✅ Recording... Press CTRL+ALT+R again to stop")
+            else:
+                print("   ❌ Failed to start recording")
+
+        print("=" * 70 + "\n")
+
+    def on_transcription_complete(self, transcription: str):
+        """Called when audio transcription is complete"""
+        print("\n" + "=" * 70)
+        print("🎤 Transcription Complete")
+        print("=" * 70)
+        print(f"   Text: {transcription[:200]}...")
+
+        try:
+            # Execute voice workflow with transcription
+            workflow_id = 'voice_recording_auto'
+            print(f"\n   🚀 Executing voice workflow...")
+
+            # Pass transcription as initial variable to skip recording steps
+            initial_variables = {
+                'transcription': transcription
+            }
+
+            result = self.middleware_client.execute_visual_workflow(
+                workflow_id,
+                initial_variables=initial_variables
+            )
+
+            status = result.get('status')
+            execution_time = result.get('execution_time_ms', 0)
+
+            print(f"   ✅ Workflow complete ({execution_time}ms)")
+            print(f"   Status: {status}")
+
+            if status == 'error':
+                error_msg = result.get('error', 'Unknown error')
+                print(f"\n   ❌ Error: {error_msg}")
+                if result.get('step_id'):
+                    print(f"   Failed at step: {result['step_id']}")
+            elif status == 'success':
+                variables = result.get('variables', {})
+                if variables:
+                    print(f"\n   📊 Results:")
+                    for key, value in variables.items():
+                        if isinstance(value, dict):
+                            print(f"      {key}:")
+                            for k, v in value.items():
+                                val_preview = str(v)[:100]
+                                print(f"         {k}: {val_preview}...")
+                        else:
+                            val_preview = str(value)[:100]
+                            print(f"      {key}: {val_preview}")
+
+            print("=" * 70 + "\n")
+
+        except MiddlewareError as e:
+            print(f"\n   ❌ Middleware error: {e}")
+            print(f"   Error code: {e.error_code}")
+            print("=" * 70 + "\n")
+
+        except Exception as e:
+            print(f"\n   ❌ Error executing voice workflow: {e}")
+            import traceback
+            traceback.print_exc()
+            print("=" * 70 + "\n")
 
     def _convert_to_pynput_format(self, hotkey: str) -> str:
         """

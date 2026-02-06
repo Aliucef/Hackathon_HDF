@@ -30,18 +30,19 @@ class WorkflowExecutor:
         except ImportError:
             pass
 
-    def execute(self, workflow: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, workflow: Dict[str, Any], initial_variables: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Execute a complete visual workflow
 
         Args:
             workflow: VisualWorkflow dict
+            initial_variables: Optional dict of variables to start with (e.g., transcription)
 
         Returns:
             Execution result with status and variables
         """
-        # Reset state for fresh execution
-        self.variables = {}
+        # Reset state for fresh execution, but include initial variables
+        self.variables = initial_variables.copy() if initial_variables else {}
         results = []
         start_time = time.time()
 
@@ -123,6 +124,10 @@ class WorkflowExecutor:
                 return self._format_with_llm(step)
             elif step_type == "write_coords":
                 return self._write_coords(step)
+            elif step_type == "record_audio":
+                return self._record_audio(step)
+            elif step_type == "transcribe_audio":
+                return self._transcribe_audio(step)
             elif step_type == "speech_to_text":
                 return self._speech_to_text(step)
             else:
@@ -342,7 +347,13 @@ class WorkflowExecutor:
             key_sequence = step.get("key_sequence", "")  # e.g., "tab,tab,enter"
 
             # Render template with variables
+            print(f"   📝 Rendering template: {content_template[:100]}...")
             content = self._render_template(content_template)
+            print(f"   📝 Rendered content: {content[:100]}...")
+
+            if not content or content.startswith("{UNDEFINED:"):
+                print(f"   ⚠️  WARNING: Template rendering failed - content is undefined")
+                print(f"   Available variables: {list(self.variables.keys())}")
 
             # Backup clipboard if using paste method
             original_clipboard = None
@@ -353,6 +364,7 @@ class WorkflowExecutor:
                     pass  # Ignore clipboard backup errors
 
             # Click coordinates
+            print(f"   🖱️  Clicking coordinates ({x}, {y})")
             pyautogui.click(x, y)
             time.sleep(0.3)
 
@@ -381,7 +393,7 @@ class WorkflowExecutor:
                         pyautogui.press(key)
                         time.sleep(0.1)
 
-            print(f"   ✅ Content written to ({x}, {y})")
+            print(f"   ✅ Content written to ({x}, {y}): {content[:50]}...")
 
             return {
                 "step_id": step["step_id"],
@@ -390,6 +402,9 @@ class WorkflowExecutor:
             }
 
         except Exception as e:
+            print(f"   ❌ Write error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {
                 "step_id": step["step_id"],
                 "status": "error",
@@ -472,9 +487,12 @@ class WorkflowExecutor:
             generated_text = result["choices"][0]["message"]["content"]
 
             print(f"   ✅ LLM Response received")
+            print(f"   📄 Raw LLM output: {generated_text[:200]}...")
 
             # Parse LLM output into field values
             formatted_fields = self._parse_llm_output(generated_text, fields)
+
+            print(f"   📊 Formatted fields: {formatted_fields}")
 
             # Store in variables
             self.variables[output_variable] = formatted_fields
@@ -542,13 +560,65 @@ class WorkflowExecutor:
 
         return result
 
-    def _speech_to_text(self, step: Dict[str, Any]) -> Dict[str, Any]:
-        """Speech-to-text - NOT IMPLEMENTED IN EXECUTOR"""
+    def _record_audio(self, step: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Record audio - PLACEHOLDER
+
+        Note: Actual recording is handled by agent toggle state.
+        This step exists for workflow definition but recording happens externally.
+        """
+        output_var = step.get("output_variable", "audio_file")
+
+        # For now, just indicate that audio recording is handled by agent
+        print(f"   🎤 Audio recording (handled by agent toggle)")
+
+        # Store placeholder - actual audio is managed by agent state
+        self.variables[output_var] = "audio_recorded"
+
         return {
             "step_id": step["step_id"],
-            "status": "error",
-            "error": "Speech-to-text not available in executor. Use the speech_app separately."
+            "status": "success",
+            "output": {output_var: "audio_recorded"}
         }
+
+    def _transcribe_audio(self, step: Dict[str, Any]) -> Dict[str, Any]:
+        """Transcribe audio to text - uses pre-provided transcription from agent"""
+        try:
+            output_variable = step.get("output_variable", "transcription")
+
+            # Check if transcription was passed as initial variable (from agent)
+            if "transcription" in self.variables:
+                transcription = self.variables["transcription"]
+
+                print(f"   ✅ Using transcription from agent: {transcription[:100]}...")
+
+                # Store in output variable if different
+                if output_variable != "transcription":
+                    self.variables[output_variable] = transcription
+
+                return {
+                    "step_id": step["step_id"],
+                    "status": "success",
+                    "output": {output_variable: transcription}
+                }
+
+            # No transcription available
+            return {
+                "step_id": step["step_id"],
+                "status": "error",
+                "error": "No transcription available. Make sure agent provided transcription as initial variable."
+            }
+
+        except Exception as e:
+            return {
+                "step_id": step["step_id"],
+                "status": "error",
+                "error": f"Transcription failed: {str(e)}"
+            }
+
+    def _speech_to_text(self, step: Dict[str, Any]) -> Dict[str, Any]:
+        """Speech-to-text - DEPRECATED, use _transcribe_audio instead"""
+        return self._transcribe_audio(step)
 
     def _render_template(self, template: str) -> str:
         """Render template with variables using simple {key} or {key.subkey} syntax"""

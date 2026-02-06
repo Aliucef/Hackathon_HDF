@@ -290,6 +290,16 @@ async def excel_dashboard():
         raise HTTPException(status_code=404, detail="Excel dashboard not found")
 
 
+@app.get("/voice", response_class=HTMLResponse, tags=["Dashboard"])
+async def voice_dashboard():
+    """Voice recording dashboard"""
+    voice_path = Path(__file__).parent / "static" / "voice.html"
+    if voice_path.exists():
+        return HTMLResponse(content=voice_path.read_text(encoding='utf-8'), status_code=200)
+    else:
+        raise HTTPException(status_code=404, detail="Voice dashboard not found")
+
+
 @app.get("/api/health", response_model=HealthResponse, tags=["Monitoring"])
 async def health_check():
     """
@@ -484,8 +494,12 @@ async def delete_visual_workflow(workflow_id: str, authorization: str = Header(N
 
 
 @app.post("/api/visual-workflows/{workflow_id}/execute", tags=["Visual Workflows"])
-async def execute_visual_workflow(workflow_id: str, authorization: str = Header(None)):
-    """Execute a visual workflow"""
+async def execute_visual_workflow(
+    workflow_id: str,
+    request: Request,
+    authorization: str = Header(None)
+):
+    """Execute a visual workflow with optional initial variables"""
     verify_token(authorization)
 
     if visual_workflow_storage is None or workflow_executor is None:
@@ -496,7 +510,17 @@ async def execute_visual_workflow(workflow_id: str, authorization: str = Header(
         raise HTTPException(status_code=404, detail=f"Workflow '{workflow_id}' not found")
 
     try:
-        result = workflow_executor.execute(workflow.model_dump(mode='json'))
+        # Try to get initial variables from request body
+        try:
+            body = await request.json()
+            initial_variables = body.get('initial_variables', {})
+        except:
+            initial_variables = {}
+
+        result = workflow_executor.execute(
+            workflow.model_dump(mode='json'),
+            initial_variables=initial_variables
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

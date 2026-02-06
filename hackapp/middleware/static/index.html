@@ -359,7 +359,7 @@
         <div class="stats">
             <div class="stat-card">
                 <div class="stat-label">Active Tools</div>
-                <div class="stat-value" id="activeFeatures">1</div>
+                <div class="stat-value" id="activeFeatures">2</div>
                 <div class="stat-detail">Ready to use</div>
             </div>
 
@@ -400,6 +400,27 @@
 
                 <div class="feature-footer">
                     Fast • Accurate • Keyboard shortcuts • Multiple fields supported
+                </div>
+            </div>
+
+            <!-- Voice Recording -->
+            <div class="feature-card" onclick="openFeature('voice')">
+                <div class="feature-header">
+                    <div class="feature-icon excel">🎤</div>
+                    <div style="flex: 1;">
+                        <div class="feature-title">Voice Recording</div>
+                        <span class="feature-badge badge-active">Available</span>
+                    </div>
+                </div>
+
+                <p class="feature-description">
+                    Record clinical conversations with a simple hotkey. Press once to start recording,
+                    press again to stop. The system transcribes your voice and fills in multiple fields
+                    automatically using AI formatting.
+                </p>
+
+                <div class="feature-footer">
+                    Hands-free • Voice-to-text • AI formatting • Multiple fields
                 </div>
             </div>
 
@@ -524,6 +545,8 @@ async function loadStats() {
 function openFeature(feature) {
     if (feature === 'excel') {
         window.location.href = '/excel';
+    } else if (feature === 'voice') {
+        window.location.href = '/voice';
     }
 }
 
