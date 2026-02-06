@@ -48,5 +48,8 @@ Thumbs.db
 # Debug
 ocr_debug.png
 
+# Uploaded Excel files
+data/excel_uploads/
+
 # Jupyter Notebook
 .ipynb_checkpoints

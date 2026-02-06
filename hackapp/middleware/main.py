@@ -6,7 +6,7 @@ REST API server for workflow orchestration
 import os
 import time
 from datetime import datetime
-from fastapi import FastAPI, HTTPException, Header, Request
+from fastapi import FastAPI, HTTPException, Header, Request, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -600,6 +600,47 @@ async def preview_ocr(
 # ============================================================================
 # Excel Helper Endpoints
 # ============================================================================
+
+@app.post("/api/excel/upload", tags=["Excel"])
+async def upload_excel(
+    file: bytes = File(...),
+    filename: str = Form(...),
+    authorization: str = Header(None)
+):
+    """
+    Upload Excel file and return its full path
+
+    Returns:
+        {
+            "status": "success",
+            "file_path": "C:\\full\\path\\to\\file.xlsx"
+        }
+    """
+    verify_token(authorization)
+
+    try:
+        from pathlib import Path
+        import os
+
+        # Create uploads directory if not exists
+        upload_dir = Path(__file__).parent.parent / "data" / "excel_uploads"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+
+        # Save file with original name
+        file_path = upload_dir / filename
+
+        # Write file
+        with open(file_path, "wb") as f:
+            f.write(file)
+
+        return {
+            "status": "success",
+            "file_path": str(file_path.absolute())
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
 
 @app.post("/api/excel/columns", tags=["Excel"])
 async def get_excel_columns(
