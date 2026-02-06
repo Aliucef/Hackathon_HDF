@@ -9,15 +9,7 @@ from typing import Optional, Callable
 import sys
 import types
 
-# Import recording indicator for visual feedback
-try:
-    from recording_indicator import show_recording_indicator, hide_recording_indicator
-    INDICATOR_AVAILABLE = True
-except ImportError:
-    INDICATOR_AVAILABLE = False
-    print("⚠️  Recording indicator not available")
-
-# Stub out modules for Python 3.13+ compatibility
+# Stub out modules for Python 3.13+ compatibility FIRST
 for _mod_name in ("aifc", "audioop"):
     if _mod_name not in sys.modules:
         sys.modules[_mod_name] = types.ModuleType(_mod_name)
@@ -25,14 +17,31 @@ for _mod_name in ("aifc", "audioop"):
 try:
     import numpy as np
     import sounddevice as sd
-except ImportError:
+except (ImportError, OSError) as e:
+    # OSError raised when PortAudio library not found
+    # ImportError raised when packages not installed
     np = None
     sd = None
+    if "PortAudio" not in str(e):
+        print(f"⚠️  Audio libraries not available: {e}")
 
 try:
     import speech_recognition as sr
 except ImportError:
     sr = None
+
+# Import recording indicator for visual feedback (after other imports)
+try:
+    from .recording_indicator import show_recording_indicator, hide_recording_indicator
+    INDICATOR_AVAILABLE = True
+except ImportError:
+    try:
+        # Fallback for direct execution
+        from recording_indicator import show_recording_indicator, hide_recording_indicator
+        INDICATOR_AVAILABLE = True
+    except ImportError:
+        INDICATOR_AVAILABLE = False
+        # Silently fail - indicator is optional
 
 
 class AudioRecorder:

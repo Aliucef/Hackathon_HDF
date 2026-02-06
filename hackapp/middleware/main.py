@@ -819,6 +819,9 @@ async def get_excel_columns(
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"   ❌ Excel columns error: {error_details}")
         raise HTTPException(status_code=500, detail=f"Error reading Excel: {str(e)}")
 
 

@@ -1,6 +1,6 @@
 """
 Recording Indicator - Visual feedback for voice recording
-Shows a sleek flashing indicator overlay when recording is active
+Shows a sleek recording indicator overlay when recording is active
 """
 
 import threading
@@ -10,16 +10,27 @@ from typing import Optional
 try:
     import tkinter as tk
     from tkinter import font
-    TKINTER_AVAILABLE = True
+    # Test if display is available (important for WSL2)
+    try:
+        test_root = tk.Tk()
+        test_root.destroy()
+        TKINTER_AVAILABLE = True
+    except Exception as e:
+        TKINTER_AVAILABLE = False
+        if "DISPLAY" in str(e) or "display" in str(e).lower():
+            # WSL2 without display server
+            pass  # Silently skip - common in WSL2
+        else:
+            print(f"⚠️  tkinter display not available: {e}")
 except ImportError:
     TKINTER_AVAILABLE = False
     print("⚠️  tkinter not available - recording indicator disabled")
 
 
 class RecordingIndicator:
-    """Displays a sleek flashing indicator overlay when recording is active"""
+    """Displays a sleek recording indicator overlay when recording is active"""
 
-    def __init__(self, width: int = 100, height: int = 35, position: str = "top-right"):
+    def __init__(self, width: int = 120, height: int = 36, position: str = "top-right"):
         """
         Initialize the recording indicator
 
@@ -36,7 +47,7 @@ class RecordingIndicator:
         self.is_showing = False
         self.flash_thread: Optional[threading.Thread] = None
         self.stop_flashing = False
-        self.flash_state = False
+        self.dot_visible = True  # For flashing animation
 
         if not TKINTER_AVAILABLE:
             self.enabled = False
@@ -86,24 +97,53 @@ class RecordingIndicator:
             self.window.overrideredirect(True)  # Remove window decorations
             self.window.attributes("-topmost", True)  # Always on top
 
-            # Platform-specific transparency
-            try:
-                self.window.wm_attributes("-transparentcolor", "#f0f0f0")
-            except:
-                pass
+            # Set background color for transparency
+            bg_color = "#1a1a1a"  # Dark background
+            self.window.configure(bg=bg_color)
 
             # Create canvas for drawing
             self.canvas = tk.Canvas(
                 self.window,
                 width=self.width,
                 height=self.height,
-                bg="#f0f0f0",
+                bg=bg_color,
                 highlightthickness=0
             )
             self.canvas.pack()
 
-            # Draw the indicator components
-            self._draw_indicator()
+            # Draw rounded rectangle background
+            corner_radius = 6
+            self._draw_rounded_rectangle(
+                4, 4, self.width - 4, self.height - 4,
+                corner_radius,
+                fill="#2d2d2d",
+                outline="#404040",
+                width=1
+            )
+
+            # Draw red recording dot (left side)
+            dot_x = 16
+            dot_y = self.height // 2
+            dot_radius = 6
+            self.rec_dot = self.canvas.create_oval(
+                dot_x - dot_radius,
+                dot_y - dot_radius,
+                dot_x + dot_radius,
+                dot_y + dot_radius,
+                fill="#ff3333",
+                outline="#cc0000",
+                width=1
+            )
+
+            # Add "REC" text
+            text_font = ("Segoe UI", 9, "bold")
+            self.rec_text = self.canvas.create_text(
+                self.width // 2 + 8,
+                self.height // 2,
+                text="RECORDING",
+                fill="#ffffff",
+                font=text_font
+            )
 
             # Start flashing animation
             self._flash_animation()
@@ -115,45 +155,8 @@ class RecordingIndicator:
             print(f"   ⚠️  Could not create recording indicator: {e}")
             self.is_showing = False
 
-    def _draw_indicator(self):
-        """Draw the recording indicator with rounded rectangle and elements"""
-        # Rounded rectangle parameters
-        radius = 8
-        padding = 2
-
-        # Draw rounded rectangle background
-        self.bg_rect = self._create_rounded_rectangle(
-            padding, padding,
-            self.width - padding, self.height - padding,
-            radius=radius,
-            fill="#DC143C",  # Crimson red
-            outline=""
-        )
-
-        # Draw small circle (recording dot) on the left
-        dot_x = 15
-        dot_y = self.height // 2
-        dot_radius = 6
-        self.dot = self.canvas.create_oval(
-            dot_x - dot_radius,
-            dot_y - dot_radius,
-            dot_x + dot_radius,
-            dot_y + dot_radius,
-            fill="white",
-            outline=""
-        )
-
-        # Draw "REC" text
-        self.text = self.canvas.create_text(
-            self.width // 2 + 10,
-            self.height // 2,
-            text="REC",
-            fill="white",
-            font=("Arial", 11, "bold")
-        )
-
-    def _create_rounded_rectangle(self, x1, y1, x2, y2, radius=10, **kwargs):
-        """Create a rounded rectangle on the canvas"""
+    def _draw_rounded_rectangle(self, x1, y1, x2, y2, radius, **kwargs):
+        """Draw a rounded rectangle on the canvas"""
         points = [
             x1 + radius, y1,
             x2 - radius, y1,
@@ -169,7 +172,7 @@ class RecordingIndicator:
             x1, y1
         ]
 
-        return self.canvas.create_polygon(points, **kwargs, smooth=True)
+        return self.canvas.create_polygon(points, smooth=True, **kwargs)
 
     def _position_window(self):
         """Position the window based on preference"""
@@ -197,28 +200,22 @@ class RecordingIndicator:
         self.window.geometry(f"+{x}+{y}")
 
     def _flash_animation(self):
-        """Animate the indicator flashing"""
+        """Animate the red dot flashing"""
         if not self.is_showing or self.stop_flashing:
             return
 
         try:
-            # Toggle flash state
-            self.flash_state = not self.flash_state
+            # Toggle dot visibility
+            self.dot_visible = not self.dot_visible
 
-            if self.flash_state:
-                # Bright state
-                bg_color = "#DC143C"  # Crimson red
-                dot_fill = "white"
+            if self.dot_visible:
+                # Bright red when visible
+                self.canvas.itemconfig(self.rec_dot, fill="#ff3333", outline="#cc0000")
             else:
-                # Dim state
-                bg_color = "#B22222"  # Firebrick (darker red)
-                dot_fill = "#FFB6C1"  # Light pink (dimmed white)
+                # Dim red when "off"
+                self.canvas.itemconfig(self.rec_dot, fill="#661111", outline="#440000")
 
-            # Update colors
-            self.canvas.itemconfig(self.bg_rect, fill=bg_color)
-            self.canvas.itemconfig(self.dot, fill=dot_fill)
-
-            # Schedule next flash (600ms for smoother animation)
+            # Schedule next flash (600ms for smooth pulsing)
             self.window.after(600, self._flash_animation)
 
         except Exception as e:
@@ -245,7 +242,7 @@ def get_indicator() -> RecordingIndicator:
     """Get the global recording indicator instance"""
     global _indicator
     if _indicator is None:
-        _indicator = RecordingIndicator(width=100, height=35, position="top-right")
+        _indicator = RecordingIndicator(width=120, height=36, position="top-right")
     return _indicator
 
 
