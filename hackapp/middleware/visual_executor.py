@@ -22,6 +22,13 @@ class WorkflowExecutor:
     def __init__(self):
         self.variables: Dict[str, Any] = {}
 
+        # Configure tesseract path for Windows
+        try:
+            import pytesseract
+            pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+        except ImportError:
+            pass
+
         # Disable pyautogui failsafe to prevent accidental stops
         try:
             import pyautogui

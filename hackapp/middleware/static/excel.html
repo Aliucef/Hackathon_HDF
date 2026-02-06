@@ -291,15 +291,48 @@
             border-top:1px solid var(--line2);
             text-align:center;
         }
+        .back-btn{
+            background:var(--panel);
+            border:1px solid var(--line2);
+            padding:6px 14px;
+            border-radius:3px;
+            font-size:12px;
+            font-weight:600;
+            color:var(--title);
+            text-decoration:none;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+        }
+
+        .back-btn:hover{
+            background:var(--panel2);
+        }
     </style>
 </head>
 <body>
 
 <div class="app">
-    <div class="topbar">
-        <h1>HackApp - Excel Automation</h1>
-        <div class="subtitle">Configure workflow, pick coordinates with hotkey, execute from DXCare</div>
+    <div class="topbar" style="
+        display: flex;
+        align-items: center;
+        width: 100%;
+    ">
+        <div>
+            <h1 style="margin: 0;">HackApp - Excel Automation</h1>
+            <div style="font-size: 14px; opacity: 0.8;">
+                Configure workflow, pick coordinates with hotkey, execute from DXCare
+            </div>
+        </div>
+
+        <a href="/" style="
+            margin-left: auto;
+            text-decoration: none;
+        "
+        class="back-btn"
+        >
+            ← Back to Dashboard
+        </a>
     </div>
+
 
     <div class="content">
         <!-- Agent Status -->

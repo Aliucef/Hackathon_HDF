@@ -11,7 +11,7 @@
         "step_type": "lookup_excel",
         "name": "Step 1",
         "enabled": true,
-        "file_path": "C:\\Users\\Aliuc\\Downloads\\patient_data.xlsx",
+        "file_path": "C:\\Users\\user\\Downloads\\patient_data.xlsx",
         "search_column": "First Name",
         "search_value_variable": "patient_name",
         "return_columns": [
@@ -53,7 +53,7 @@
   {
     "workflow_id": "excel_lookup_auto",
     "name": "Excel Patient Lookup",
-    "description": "Search Patient ID in Excel, format with LLM, write to 1 field(s)",
+    "description": "Search Patient ID in Excel, format with LLM, write to 2 field(s)",
     "hotkey": "CTRL+ALT+E",
     "enabled": true,
     "steps": [
@@ -61,8 +61,8 @@
         "step_id": "1",
         "step_type": "read_coords",
         "name": "Read patient ID from screen",
-        "x": 210,
-        "y": 143,
+        "x": 130,
+        "y": 106,
         "width": 200,
         "height": 40,
         "extract_numbers": true,
@@ -72,7 +72,7 @@
         "step_id": "2",
         "step_type": "lookup_excel",
         "name": "Lookup patient data in Excel",
-        "file_path": "C:\\Users\\Aliuc\\OneDrive\\Desktop\\Hackathon_HDF\\hackapp\\data\\excel_uploads\\patient_data.xlsx",
+        "file_path": "C:\\Users\\user\\Hackathon_HDF\\hackapp\\data\\excel_uploads\\patient_data.xlsx",
         "search_column": "Patient ID",
         "search_value_variable": "patient_identifier",
         "return_columns": [
@@ -98,7 +98,11 @@
         "fields": [
           {
             "name": "Field 1",
-            "description": "first and last names , and age"
+            "description": "first and last names , "
+          },
+          {
+            "name": "Field 2",
+            "description": " Gender, Diagnosis Text, ICD-10 Code, Admission Date, Attending Physician, Department , in a narrative way"
           }
         ],
         "output_variable": "formatted_fields"
@@ -107,19 +111,28 @@
         "step_id": "4",
         "step_type": "write_coords",
         "name": "Write to Field 1",
-        "x": 672,
-        "y": 366,
+        "x": 349,
+        "y": 292,
         "content_template": "{formatted_fields.Field 1}",
+        "insert_method": "paste"
+      },
+      {
+        "step_id": "5",
+        "step_type": "write_coords",
+        "name": "Write to Field 2",
+        "x": 483,
+        "y": 440,
+        "content_template": "{formatted_fields.Field 2}",
         "insert_method": "paste"
       }
     ],
-    "created_at": "2026-02-06T15:50:53.516784",
-    "updated_at": "2026-02-06T15:50:53.517136"
+    "created_at": "2026-02-06T18:26:34.577132",
+    "updated_at": "2026-02-06T18:26:34.577132"
   },
   {
     "workflow_id": "voice_recording_auto",
     "name": "Voice Recording",
-    "description": "Record audio, format with LLM, write to 2 field(s)",
+    "description": "Record audio, format with LLM, write to 3 field(s)",
     "hotkey": "CTRL+ALT+R",
     "enabled": true,
     "steps": [
@@ -144,12 +157,16 @@
         "input_variable": "transcription",
         "fields": [
           {
-            "name": "PATIENT name",
-            "description": "patient name"
+            "name": "Reason for Admission",
+            "description": "Summarize the patient\u2019s primary complaint in one concise medical sentence.\nDo not include diagnoses."
           },
           {
-            "name": "patient history",
-            "description": "WHAT patient could be suffering from"
+            "name": "History of Present Illness",
+            "description": "Summarize the timeline and evolution of the patient\u2019s current symptoms based on the conversation.\nInclude onset, duration, progression, and associated symptoms mentioned.\nDo not add information not explicitly stated"
+          },
+          {
+            "name": "Home Medications",
+            "description": "Extract the patient\u2019s usual medications prior to admission from the conversation.\nInclude name, dose, and frequency if mentioned.\nExclude treatments started during this encounter."
           }
         ],
         "output_variable": "formatted_fields"
@@ -157,23 +174,32 @@
       {
         "step_id": "4",
         "step_type": "write_coords",
-        "name": "Write to PATIENT name",
-        "x": 691,
-        "y": 381,
-        "content_template": "{formatted_fields.PATIENT name}",
+        "name": "Write to Reason for Admission",
+        "x": 565,
+        "y": 310,
+        "content_template": "{formatted_fields.Reason for Admission}",
         "insert_method": "paste"
       },
       {
         "step_id": "5",
         "step_type": "write_coords",
-        "name": "Write to patient history",
-        "x": 684,
-        "y": 544,
-        "content_template": "{formatted_fields.patient history}",
+        "name": "Write to History of Present Illness",
+        "x": 703,
+        "y": 468,
+        "content_template": "{formatted_fields.History of Present Illness}",
+        "insert_method": "paste"
+      },
+      {
+        "step_id": "6",
+        "step_type": "write_coords",
+        "name": "Write to Home Medications",
+        "x": 807,
+        "y": 605,
+        "content_template": "{formatted_fields.Home Medications}",
         "insert_method": "paste"
       }
     ],
-    "created_at": "2026-02-06T15:51:18.716339",
-    "updated_at": "2026-02-06T15:51:18.716834"
+    "created_at": "2026-02-06T18:27:10.179161",
+    "updated_at": "2026-02-06T18:27:10.180165"
   }
 ]

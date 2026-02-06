@@ -44,7 +44,8 @@
       "Bash(git restore:*)",
       "Bash(PYTHONPATH=/mnt/c/Users/Aliuc/OneDrive/Desktop/Hackathon_HDF/hackapp timeout 3 python3:*)",
       "Bash(dpkg:*)",
-      "Bash(pip3 install:*)"
+      "Bash(pip3 install:*)",
+      "Bash(where.exe:*)"
     ]
   }
 }

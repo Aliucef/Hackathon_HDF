@@ -33,7 +33,7 @@ python-json-logger==2.0.7
 
 # Audio processing
 sounddevice==0.4.6
-numpy==1.24.3
+numpy>=1.26.0
 SpeechRecognition==3.10.0
 
 # Excel processing

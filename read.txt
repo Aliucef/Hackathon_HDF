@@ -80,3 +80,8 @@
   That's it! 🚀
 
 ──────────────────────
+# Important: API Keys
+
+⚠️ API keys are stored in hackapp/.env file (not in git)
+⚠️ Never commit API keys to the repository
+⚠️ Use .env file for local development
