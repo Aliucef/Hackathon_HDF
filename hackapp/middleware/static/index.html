@@ -320,30 +320,27 @@
             <div class="sectionBody">
                 <div class="form-row">
                     <label class="form-label">Excel File Path (Full Path Required)</label>
-                    <input type="text" id="excelPath" placeholder="C:\Users\YourName\Desktop\patient_data.xlsx">
-                    <div style="font-size:10px; color:#e89f3c; margin-top:6px; background:#fff9e6; padding:8px; border:1px solid #f5d875; border-radius:3px;">
-                        <strong>⚠️ How to get full path:</strong><br>
-                        1. Right-click your Excel file → <strong>Properties</strong><br>
-                        2. Copy the <strong>Location</strong> path<br>
-                        3. Paste here and add <strong>\filename.xlsx</strong> at the end<br>
-                        <br>
-                        Example: <code>C:\Users\Aliuc\Desktop\patient_data.xlsx</code>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" id="excelPath" placeholder="C:\Users\YourName\Desktop\patient_data.xlsx" style="flex:1;">
+                        <button class="btn primary" id="loadColumnsBtn" onclick="loadExcelColumns()">
+                            Load Columns
+                        </button>
+                    </div>
+                    <div style="font-size:10px; color:var(--muted); margin-top:4px;">
+                        Paste full file path, then click "Load Columns" to read Excel structure
                     </div>
                 </div>
+
+                <div id="excelStatus" class="hidden" style="margin-top:8px; padding:8px; border-radius:3px; font-size:11px;"></div>
             </div>
         </div>
 
         <!-- Step 2: Column Configuration -->
         <div class="section">
             <div class="sectionHeader">2. Column Configuration</div>
-            <div class="sectionBody">
-                <div class="form-row">
-                    <label class="form-label">Search Column (where patient IDs/names are)</label>
-                    <input type="text" id="searchColumn" placeholder="e.g., Patient ID or Patient Name">
-                </div>
-                <div class="form-row">
-                    <label class="form-label">Return Columns (comma-separated)</label>
-                    <input type="text" id="returnColumns" placeholder="e.g., First Name, Last Name, Age, Diagnosis, ICD-10 Code">
+            <div class="sectionBody" id="columnConfigSection">
+                <div style="text-align:center; padding:20px; color:var(--muted); font-size:12px;">
+                    📋 Load Excel file first to see available columns
                 </div>
             </div>
         </div>
@@ -504,6 +501,124 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // (File browsing removed - browser security prevents full path access)
+
+// Excel columns management
+let excelColumns = [];
+
+async function loadExcelColumns() {
+    const filePath = document.getElementById('excelPath').value.trim();
+
+    if (!filePath) {
+        showAlert('error', 'Please enter Excel file path first.');
+        return;
+    }
+
+    const btn = document.getElementById('loadColumnsBtn');
+    const statusDiv = document.getElementById('excelStatus');
+
+    try {
+        btn.disabled = true;
+        btn.textContent = 'Loading...';
+        statusDiv.className = 'hidden';
+
+        const response = await fetch(`${API_URL}/api/excel/columns`, {
+            method: 'POST',
+            headers: {
+                'Authorization': AUTH_TOKEN,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                file_path: filePath
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to load columns');
+        }
+
+        const data = await response.json();
+        excelColumns = data.columns;
+
+        // Update file path with absolute path
+        document.getElementById('excelPath').value = data.file_path;
+
+        // Show success status
+        statusDiv.className = '';
+        statusDiv.style.background = '#e8f7f0';
+        statusDiv.style.border = '1px solid var(--ok)';
+        statusDiv.style.color = 'var(--ok)';
+        statusDiv.innerHTML = `✅ Loaded ${excelColumns.length} columns: ${excelColumns.join(', ')}`;
+
+        // Render column selectors
+        renderColumnSelectors();
+
+        showAlert('success', `Loaded ${excelColumns.length} columns from Excel!`);
+
+    } catch (error) {
+        statusDiv.className = '';
+        statusDiv.style.background = '#ffe8e8';
+        statusDiv.style.border = '1px solid var(--danger)';
+        statusDiv.style.color = 'var(--danger)';
+        statusDiv.innerHTML = `❌ ${error.message}`;
+
+        showAlert('error', `Failed to load columns: ${error.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Load Columns';
+    }
+}
+
+function renderColumnSelectors() {
+    const container = document.getElementById('columnConfigSection');
+
+    container.innerHTML = `
+        <div class="form-row">
+            <label class="form-label">Search Column (where patient IDs are)</label>
+            <select id="searchColumn">
+                <option value="">-- Select Column --</option>
+                ${excelColumns.map(col => `<option value="${col}">${col}</option>`).join('')}
+            </select>
+            <div style="font-size:10px; color:var(--muted); margin-top:4px;">
+                Column containing patient IDs to search for
+            </div>
+        </div>
+
+        <div class="form-row">
+            <label class="form-label">Return Columns (select multiple)</label>
+            <div id="returnColumnsCheckboxes" style="background:#fff; border:1px solid var(--line2); border-radius:3px; padding:12px; max-height:200px; overflow-y:auto;">
+                ${excelColumns.map(col => `
+                    <label style="display:block; margin-bottom:8px; font-size:12px; cursor:pointer;">
+                        <input type="checkbox" value="${col}" onchange="updateReturnColumns()" style="width:auto; margin-right:8px;">
+                        ${col}
+                    </label>
+                `).join('')}
+            </div>
+            <div style="font-size:10px; color:var(--muted); margin-top:4px;">
+                Select which columns to retrieve and use for formatting
+            </div>
+        </div>
+
+        <div id="selectedReturnColumns" style="margin-top:8px; padding:8px; background:#e8f2ff; border:1px solid var(--accent); border-radius:3px; font-size:11px; display:none;">
+            <strong>Selected:</strong> <span id="selectedReturnColumnsList"></span>
+        </div>
+    `;
+}
+
+function updateReturnColumns() {
+    const checkboxes = document.querySelectorAll('#returnColumnsCheckboxes input[type="checkbox"]:checked');
+    const selected = Array.from(checkboxes).map(cb => cb.value);
+
+    const selectedDiv = document.getElementById('selectedReturnColumns');
+    const selectedList = document.getElementById('selectedReturnColumnsList');
+
+    if (selected.length > 0) {
+        selectedDiv.style.display = 'block';
+        selectedList.textContent = selected.join(', ');
+    } else {
+        selectedDiv.style.display = 'none';
+    }
+}
 
 // Output fields management
 function addOutputField() {
@@ -785,9 +900,15 @@ async function fetchOCRPreview(x, y) {
 async function saveWorkflow() {
     // Validation
     config.excelPath = document.getElementById('excelPath').value.trim();
-    config.searchColumn = document.getElementById('searchColumn').value.trim();
-    const returnColsStr = document.getElementById('returnColumns').value.trim();
-    config.returnColumns = returnColsStr.split(',').map(c => c.trim()).filter(c => c);
+
+    // Get search column from dropdown
+    const searchColumnSelect = document.getElementById('searchColumn');
+    config.searchColumn = searchColumnSelect ? searchColumnSelect.value : '';
+
+    // Get return columns from checkboxes
+    const returnCheckboxes = document.querySelectorAll('#returnColumnsCheckboxes input[type="checkbox"]:checked');
+    config.returnColumns = Array.from(returnCheckboxes).map(cb => cb.value);
+
     config.executeHotkey = document.getElementById('executeHotkey').value.trim().toUpperCase();
     config.enableLLM = document.getElementById('enableLLM').checked;
 
@@ -1004,11 +1125,23 @@ async function loadExistingWorkflow() {
                 config.searchColumn = step.search_column;
                 config.returnColumns = step.return_columns;
                 document.getElementById('excelPath').value = config.excelPath;
-                document.getElementById('searchColumn').value = config.searchColumn;
-                document.getElementById('returnColumns').value = config.returnColumns.join(', ');
-            } else if (step.step_type === 'write_coords') {
-                config.outputCoords = { x: step.x, y: step.y };
-                updateCoordDisplay('output', config.outputCoords);
+
+                // Load columns from Excel file automatically
+                loadExcelColumns().then(() => {
+                    // After columns load, select the previously configured ones
+                    if (config.searchColumn) {
+                        const searchSelect = document.getElementById('searchColumn');
+                        if (searchSelect) searchSelect.value = config.searchColumn;
+                    }
+
+                    if (config.returnColumns && config.returnColumns.length > 0) {
+                        config.returnColumns.forEach(col => {
+                            const checkbox = document.querySelector(`#returnColumnsCheckboxes input[value="${col}"]`);
+                            if (checkbox) checkbox.checked = true;
+                        });
+                        updateReturnColumns();
+                    }
+                });
             }
         });
 

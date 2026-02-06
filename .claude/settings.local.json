@@ -35,7 +35,11 @@
       "Bash(__NEW_LINE_358348e52d8f35fe__ echo '=== Voice summary: clean clinical text \\(regression check\\) ===')",
       "Bash(netstat:*)",
       "Bash(ss:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(git reset:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }

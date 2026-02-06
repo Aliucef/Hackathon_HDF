@@ -598,6 +598,67 @@ async def preview_ocr(
 
 
 # ============================================================================
+# Excel Helper Endpoints
+# ============================================================================
+
+@app.post("/api/excel/columns", tags=["Excel"])
+async def get_excel_columns(
+    request: dict,
+    authorization: str = Header(None)
+):
+    """
+    Get column names from Excel file
+
+    Request body:
+        {
+            "file_path": "C:\\path\\to\\file.xlsx",
+            "sheet_name": "Sheet1" (optional)
+        }
+
+    Returns:
+        {
+            "status": "success",
+            "columns": ["Column1", "Column2", ...],
+            "file_path": "C:\\path\\to\\file.xlsx"
+        }
+    """
+    verify_token(authorization)
+
+    try:
+        import pandas as pd
+        from pathlib import Path
+    except ImportError:
+        raise HTTPException(status_code=500, detail="pandas not installed")
+
+    try:
+        file_path = request.get("file_path")
+        sheet_name = request.get("sheet_name", 0)
+
+        if not file_path:
+            raise HTTPException(status_code=400, detail="Missing file_path")
+
+        # Check if file exists
+        path = Path(file_path)
+        if not path.exists():
+            raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
+
+        # Read Excel headers
+        df = pd.read_excel(file_path, sheet_name=sheet_name, nrows=0)
+        columns = df.columns.tolist()
+
+        return {
+            "status": "success",
+            "columns": columns,
+            "file_path": str(path.absolute())
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading Excel: {str(e)}")
+
+
+# ============================================================================
 # Error Handlers
 # ============================================================================
 
