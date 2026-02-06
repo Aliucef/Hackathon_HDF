@@ -1,0 +1,82 @@
+                                                                                                                                           ● 📦 Moving Project to Another Device - Checklist:                                                                                                                                                                                                                                    
+  1. After Cloning from GitHub:                                                                                                            
+  
+  git clone <your-repo-url>                                                                                                                  cd Hackathon_HDF/hackapp                                                                                                                 
+
+  2. Install Dependencies (3 requirements files):
+
+  # Install middleware dependencies
+  pip install -r middleware/requirements.txt
+
+  # Install agent dependencies
+  pip install -r agent/requirements.txt
+
+  # Install mock service dependencies
+  pip install -r mock_service/requirements.txt
+
+  3. Set API Keys:
+
+  You need to add your Groq API key in the middleware code:
+  - File: hackapp/middleware/visual_executor.py
+  - Look for: GROQ_API_KEY = "your_key_here"
+  - This is NOT in GitHub (if you gitignored it properly)
+
+  4. Update File Paths:
+
+  Check these config files and update Windows paths:
+  - hackapp/config/visual_workflows.json - Excel file paths like:
+  "file_path": "C:\\Users\\Aliuc\\OneDrive\\Desktop\\..."
+  - Change to your new device's path.
+
+  5. Port Requirements:
+
+  Make sure these ports are free on the new device:
+  - 5000 - Middleware
+  - 5001 - Mock Service
+  - 5002 - Agent API
+
+  6. Excel Files:
+
+  Copy your Excel files to the new device:
+  - hackapp/data/excel_uploads/patient_data.xlsx
+
+  7. Python Version:
+
+  - Should be Python 3.8+
+  - Windows Python (not WSL)
+
+  8. Start Command (Same as Before):
+
+  cd hackapp
+  py middleware\main.py
+
+  ---
+  Files NOT in Git (You Need Manually):
+
+  - __pycache__/ folders (auto-generated, ignore)
+  - logs/ folder (auto-generated)
+  - API keys in code
+  - Your specific Excel files
+
+  ---
+  Quick Start on New Device:
+
+  # 1. Clone
+  git clone <repo-url>
+  cd Hackathon_HDF/hackapp
+
+  # 2. Install
+  pip install -r middleware/requirements.txt
+  pip install -r agent/requirements.txt
+  pip install -r mock_service/requirements.txt
+
+  # 3. Add Groq API key to middleware/visual_executor.py
+
+  # 4. Update Excel file paths in config/visual_workflows.json
+
+  # 5. Run
+  py middleware\main.py
+
+  That's it! 🚀
+
+──────────────────────
