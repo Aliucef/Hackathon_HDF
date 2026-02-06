@@ -53,7 +53,7 @@
   {
     "workflow_id": "excel_lookup_auto",
     "name": "Excel Patient Lookup",
-    "description": "Search Patient ID in Excel, return Patient ID, Last Name, Age, Gender, Diagnosis Text, ICD-10 Code, Admission Date, Attending Physician, Department",
+    "description": "Search Patient ID in Excel, format with LLM, write to 2 field(s)",
     "hotkey": "CTRL+ALT+E",
     "enabled": true,
     "steps": [
@@ -61,8 +61,8 @@
         "step_id": "1",
         "step_type": "read_coords",
         "name": "Read patient ID from screen",
-        "x": 213,
-        "y": 138,
+        "x": 212,
+        "y": 137,
         "width": 200,
         "height": 40,
         "extract_numbers": true,
@@ -90,15 +90,41 @@
       },
       {
         "step_id": "3",
+        "step_type": "format_with_llm",
+        "name": "Format data with Groq AI",
+        "input_variable": "patient_data",
+        "fields": [
+          {
+            "name": "Field 1",
+            "description": "full name and age"
+          },
+          {
+            "name": "Field 2",
+            "description": "Gender,Diagnosis Text,ICD-10 Code,Admission Date,Attending Physician,Department"
+          }
+        ],
+        "output_variable": "formatted_fields"
+      },
+      {
+        "step_id": "4",
         "step_type": "write_coords",
-        "name": "Paste results to field",
-        "x": 573,
-        "y": 505,
-        "content_template": "Patient ID: {patient_data.Patient ID}, Last Name: {patient_data.Last Name}, Age: {patient_data.Age}, Gender: {patient_data.Gender}, Diagnosis Text: {patient_data.Diagnosis Text}, ICD-10 Code: {patient_data.ICD-10 Code}, Admission Date: {patient_data.Admission Date}, Attending Physician: {patient_data.Attending Physician}, Department: {patient_data.Department}",
+        "name": "Write to Field 1",
+        "x": 649,
+        "y": 347,
+        "content_template": "{formatted_fields.Field 1}",
+        "insert_method": "paste"
+      },
+      {
+        "step_id": "5",
+        "step_type": "write_coords",
+        "name": "Write to Field 2",
+        "x": 666,
+        "y": 512,
+        "content_template": "{formatted_fields.Field 2}",
         "insert_method": "paste"
       }
     ],
-    "created_at": "2026-02-06T00:08:03.572337",
-    "updated_at": "2026-02-06T00:08:03.572681"
+    "created_at": "2026-02-06T00:39:35.278889",
+    "updated_at": "2026-02-06T00:39:35.279228"
   }
 ]

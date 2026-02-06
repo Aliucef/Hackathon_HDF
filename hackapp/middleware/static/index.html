@@ -413,33 +413,39 @@
             </div>
         </div>
 
-        <!-- Step 4: Output Field Location -->
+        <!-- Step 4: LLM Configuration -->
         <div class="section">
-            <div class="sectionHeader">4. Output Field Location (Paste Target)</div>
+            <div class="sectionHeader">4. LLM Data Formatting (Optional)</div>
             <div class="sectionBody">
-                <div class="coordBox">
-                    <div class="coordStatus">
-                        <span class="status-dot unset" id="outputDot"></span>
-                        <span class="label">Coordinates:</span>
-                        <span class="value unset" id="outputCoordDisplay">Not Set</span>
-                        <button class="btn primary" id="outputToggle" onclick="toggleField('output')" style="margin-left:auto;">
-                            Set This Field
-                        </button>
-                    </div>
-
-                    <div class="instruction">
-                        <strong>To set coordinates:</strong><br>
-                        1. Click "Set This Field" button above<br>
-                        2. Press <code>CTRL+ALT+C</code> anywhere<br>
-                        3. Click on the field where you want results pasted
+                <div class="form-row">
+                    <label class="form-label">
+                        <input type="checkbox" id="enableLLM" style="width:auto; margin-right:6px;">
+                        Enable Smart Formatting with Groq AI (Llama 3.3)
+                    </label>
+                    <div style="font-size:10px; color:var(--muted); margin-top:4px;">
+                        🤖 LLM will intelligently format Excel data for each field based on descriptions.<br>
+                        📝 Make sure to provide clear field descriptions for best results.<br>
+                        ⚡ Powered by Groq - blazing fast inference!
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Step 5: Execution Hotkey -->
+        <!-- Step 5: Output Fields Configuration -->
         <div class="section">
-            <div class="sectionHeader">5. Execution Hotkey</div>
+            <div class="sectionHeader">5. Output Fields (Where to Paste Data)</div>
+            <div class="sectionBody">
+                <div id="outputFieldsList"></div>
+
+                <button class="btn primary" onclick="addOutputField()" style="margin-top:12px;">
+                    + Add Output Field
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 6: Execution Hotkey -->
+        <div class="section">
+            <div class="sectionHeader">6. Execution Hotkey</div>
             <div class="sectionBody">
                 <div class="form-row">
                     <label class="form-label">Choose Hotkey to Execute Workflow</label>
@@ -477,25 +483,108 @@ let config = {
     searchColumn: '',
     returnColumns: [],
     patientCoords: null,
-    outputCoords: null,
-    executeHotkey: 'CTRL+ALT+E'
+    outputFields: [],  // Array of {id, name, description, coords}
+    executeHotkey: 'CTRL+ALT+E',
+    enableLLM: false
 };
 
 let pickingSessions = {
-    patient: null,
-    output: null
+    patient: null
 };
 
-let activeField = null; // Which field is currently being set ('patient' or 'output')
+let activeField = null; // Which field is currently being set ('patient' or 'output_X')
 let pollingInterval = null;
+let outputFieldCounter = 0;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     loadExistingWorkflow();
     startPolling();
+    renderOutputFields();
 });
 
 // (File browsing removed - browser security prevents full path access)
+
+// Output fields management
+function addOutputField() {
+    const fieldId = `field_${++outputFieldCounter}`;
+    const field = {
+        id: fieldId,
+        name: `Field ${outputFieldCounter}`,
+        description: '',
+        coords: null
+    };
+
+    config.outputFields.push(field);
+    renderOutputFields();
+}
+
+function removeOutputField(fieldId) {
+    config.outputFields = config.outputFields.filter(f => f.id !== fieldId);
+
+    // Clear picking session if this field was being picked
+    if (activeField === fieldId) {
+        activeField = null;
+    }
+    delete pickingSessions[fieldId];
+
+    renderOutputFields();
+}
+
+function renderOutputFields() {
+    const container = document.getElementById('outputFieldsList');
+
+    if (config.outputFields.length === 0) {
+        container.innerHTML = '<div style="color:var(--muted); font-size:12px; padding:12px; background:#fff; border:1px solid var(--line2); border-radius:3px;">No output fields yet. Click "Add Output Field" to create one.</div>';
+        return;
+    }
+
+    container.innerHTML = config.outputFields.map(field => `
+        <div class="coordBox" style="margin-bottom:16px;" id="field_${field.id}">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <input type="text" value="${field.name}" onchange="updateFieldName('${field.id}', this.value)"
+                    style="width:200px; font-weight:700;" placeholder="Field Name">
+                <button class="btn" onclick="removeOutputField('${field.id}')" style="background:var(--danger); color:white; border-color:var(--danger); padding:4px 8px; font-size:11px;">
+                    Remove
+                </button>
+            </div>
+
+            <div class="form-row">
+                <label class="form-label">Field Description (for LLM)</label>
+                <input type="text" value="${field.description || ''}" onchange="updateFieldDescription('${field.id}', this.value)"
+                    placeholder="e.g., Patient's full name, Age in years, Primary diagnosis">
+                <div style="font-size:10px; color:var(--muted); margin-top:4px;">
+                    Tell the LLM what this field should contain. Be specific!
+                </div>
+            </div>
+
+            <div class="coordStatus" style="margin-top:12px;">
+                <span class="status-dot ${field.coords ? 'set' : 'unset'}" id="dot_${field.id}"></span>
+                <span class="label">Coordinates:</span>
+                <span class="value ${field.coords ? 'set' : 'unset'}" id="coords_${field.id}">
+                    ${field.coords ? `(${field.coords.x}, ${field.coords.y})` : 'Not Set'}
+                </span>
+                <button class="btn primary" id="toggle_${field.id}" onclick="toggleField('${field.id}')" style="margin-left:auto;">
+                    Set This Field
+                </button>
+            </div>
+
+            <div class="instruction" style="margin-top:8px;">
+                Press <code>CTRL+ALT+C</code> then click where you want this field pasted in DXCare
+            </div>
+        </div>
+    `).join('');
+}
+
+function updateFieldName(fieldId, name) {
+    const field = config.outputFields.find(f => f.id === fieldId);
+    if (field) field.name = name;
+}
+
+function updateFieldDescription(fieldId, description) {
+    const field = config.outputFields.find(f => f.id === fieldId);
+    if (field) field.description = description;
+}
 
 // Toggle field for coordinate picking
 function toggleField(fieldType) {
@@ -520,8 +609,15 @@ function toggleField(fieldType) {
 }
 
 function updateToggleButton(fieldType, active) {
-    const btnId = fieldType === 'patient' ? 'patientToggle' : 'outputToggle';
+    let btnId;
+    if (fieldType === 'patient') {
+        btnId = 'patientToggle';
+    } else {
+        btnId = `toggle_${fieldType}`;
+    }
+
     const btn = document.getElementById(btnId);
+    if (!btn) return;
 
     if (active) {
         btn.textContent = 'Waiting for CTRL+ALT+C...';
@@ -551,17 +647,18 @@ function startPolling() {
             // Coordinates received!
             if (activeField === 'patient') {
                 config.patientCoords = result;
+                // Fetch OCR preview for patient field
+                await fetchOCRPreview(result.x, result.y);
             } else {
-                config.outputCoords = result;
+                // Update output field coords
+                const field = config.outputFields.find(f => f.id === activeField);
+                if (field) {
+                    field.coords = result;
+                }
             }
 
             updateCoordDisplay(activeField, result);
             updateToggleButton(activeField, false);
-
-            // Fetch OCR preview for patient field
-            if (activeField === 'patient') {
-                await fetchOCRPreview(result.x, result.y);
-            }
 
             // Clear session and active field
             pickingSessions[activeField] = null;
@@ -617,12 +714,24 @@ async function activatePickingSession(fieldType) {
 }
 
 function updateCoordDisplay(fieldType, coords) {
-    const dotId = fieldType === 'patient' ? 'patientDot' : 'outputDot';
-    const displayId = fieldType === 'patient' ? 'patientCoordDisplay' : 'outputCoordDisplay';
+    let dotId, displayId;
 
-    document.getElementById(dotId).className = 'status-dot set';
-    document.getElementById(displayId).className = 'value set';
-    document.getElementById(displayId).textContent = `(${coords.x}, ${coords.y})`;
+    if (fieldType === 'patient') {
+        dotId = 'patientDot';
+        displayId = 'patientCoordDisplay';
+    } else {
+        dotId = `dot_${fieldType}`;
+        displayId = `coords_${fieldType}`;
+    }
+
+    const dot = document.getElementById(dotId);
+    const display = document.getElementById(displayId);
+
+    if (dot && display) {
+        dot.className = 'status-dot set';
+        display.className = 'value set';
+        display.textContent = `(${coords.x}, ${coords.y})`;
+    }
 }
 
 async function fetchOCRPreview(x, y) {
@@ -680,9 +789,10 @@ async function saveWorkflow() {
     const returnColsStr = document.getElementById('returnColumns').value.trim();
     config.returnColumns = returnColsStr.split(',').map(c => c.trim()).filter(c => c);
     config.executeHotkey = document.getElementById('executeHotkey').value.trim().toUpperCase();
+    config.enableLLM = document.getElementById('enableLLM').checked;
 
     if (!config.excelPath) {
-        showAlert('error', 'Please select an Excel file.');
+        showAlert('error', 'Please provide Excel file path.');
         return;
     }
 
@@ -697,13 +807,26 @@ async function saveWorkflow() {
     }
 
     if (!config.patientCoords) {
-        showAlert('error', 'Please set patient ID/name coordinates using CTRL+ALT+C.');
+        showAlert('error', 'Please set patient ID coordinates using CTRL+ALT+C.');
         return;
     }
 
-    if (!config.outputCoords) {
-        showAlert('error', 'Please set output field coordinates using CTRL+ALT+C.');
+    if (config.outputFields.length === 0) {
+        showAlert('error', 'Please add at least one output field.');
         return;
+    }
+
+    // Check all output fields have coordinates
+    for (const field of config.outputFields) {
+        if (!field.coords) {
+            showAlert('error', `Please set coordinates for field "${field.name}".`);
+            return;
+        }
+
+        if (config.enableLLM && !field.description) {
+            showAlert('error', `Please provide description for field "${field.name}" (required for LLM).`);
+            return;
+        }
     }
 
     if (!config.executeHotkey) {
@@ -719,45 +842,82 @@ async function saveWorkflow() {
     const offsetX = parseInt(document.getElementById('coordOffsetX').value) || 0;
     const offsetY = parseInt(document.getElementById('coordOffsetY').value) || 0;
 
+    // Build workflow steps
+    const steps = [
+        {
+            step_id: '1',
+            step_type: 'read_coords',
+            name: 'Read patient ID from screen',
+            x: config.patientCoords.x + offsetX,
+            y: config.patientCoords.y + offsetY,
+            width: ocrWidth,
+            height: ocrHeight,
+            extract_numbers: true,
+            output_variable: 'patient_identifier'
+        },
+        {
+            step_id: '2',
+            step_type: 'lookup_excel',
+            name: 'Lookup patient data in Excel',
+            file_path: config.excelPath,
+            search_column: config.searchColumn,
+            search_value_variable: 'patient_identifier',
+            return_columns: config.returnColumns,
+            output_variable: 'patient_data'
+        }
+    ];
+
+    let stepCounter = 3;
+
+    // Add LLM formatting step if enabled
+    if (config.enableLLM) {
+        steps.push({
+            step_id: stepCounter.toString(),
+            step_type: 'format_with_llm',
+            name: 'Format data with Groq AI',
+            input_variable: 'patient_data',
+            fields: config.outputFields.map(f => ({
+                name: f.name,
+                description: f.description
+            })),
+            output_variable: 'formatted_fields'
+        });
+        stepCounter++;
+    }
+
+    // Add write steps for each output field
+    config.outputFields.forEach((field, index) => {
+        let contentTemplate;
+
+        if (config.enableLLM) {
+            // Use LLM formatted data
+            contentTemplate = `{formatted_fields.${field.name}}`;
+        } else {
+            // Use raw Excel data (all columns concatenated)
+            contentTemplate = buildContentTemplate(config.returnColumns);
+        }
+
+        steps.push({
+            step_id: stepCounter.toString(),
+            step_type: 'write_coords',
+            name: `Write to ${field.name}`,
+            x: field.coords.x + offsetX,
+            y: field.coords.y + offsetY,
+            content_template: contentTemplate,
+            insert_method: 'paste'
+        });
+
+        stepCounter++;
+    });
+
     // Build workflow
     const workflow = {
         workflow_id: 'excel_lookup_auto',
         name: 'Excel Patient Lookup',
-        description: `Search ${config.searchColumn} in Excel, return ${config.returnColumns.join(', ')}`,
+        description: `Search ${config.searchColumn} in Excel, ${config.enableLLM ? 'format with LLM, ' : ''}write to ${config.outputFields.length} field(s)`,
         hotkey: config.executeHotkey,
         enabled: true,
-        steps: [
-            {
-                step_id: '1',
-                step_type: 'read_coords',
-                name: 'Read patient ID from screen',
-                x: config.patientCoords.x + offsetX,
-                y: config.patientCoords.y + offsetY,
-                width: ocrWidth,
-                height: ocrHeight,
-                extract_numbers: true,
-                output_variable: 'patient_identifier'
-            },
-            {
-                step_id: '2',
-                step_type: 'lookup_excel',
-                name: 'Lookup patient data in Excel',
-                file_path: config.excelPath,
-                search_column: config.searchColumn,
-                search_value_variable: 'patient_identifier',
-                return_columns: config.returnColumns,
-                output_variable: 'patient_data'
-            },
-            {
-                step_id: '3',
-                step_type: 'write_coords',
-                name: 'Paste results to field',
-                x: config.outputCoords.x,
-                y: config.outputCoords.y,
-                content_template: buildContentTemplate(config.returnColumns),
-                insert_method: 'paste'
-            }
-        ]
+        steps: steps
     };
 
     // Save to middleware

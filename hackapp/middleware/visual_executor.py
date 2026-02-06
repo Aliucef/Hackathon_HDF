@@ -4,8 +4,16 @@ Executes visual workflows step-by-step with REAL screen automation (NO MOCKS)
 """
 
 import time
+import os
 from typing import Dict, Any, Optional
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Groq API Configuration
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 
 class WorkflowExecutor:
@@ -73,6 +81,8 @@ class WorkflowExecutor:
                 return self._lookup_db(step)
             elif step_type == "lookup_api":
                 return self._lookup_api(step)
+            elif step_type == "format_with_llm":
+                return self._format_with_llm(step)
             elif step_type == "write_coords":
                 return self._write_coords(step)
             elif step_type == "speech_to_text":
@@ -326,6 +336,152 @@ class WorkflowExecutor:
                 "error": f"Write failed: {str(e)}"
             }
 
+    def _format_with_llm(self, step: Dict[str, Any]) -> Dict[str, Any]:
+        """Format data using Gemini LLM based on field descriptions"""
+        try:
+            import requests
+        except ImportError:
+            return {
+                "step_id": step["step_id"],
+                "status": "error",
+                "error": "requests not installed. Install: pip install requests"
+            }
+
+        try:
+            # Use hardcoded API key (secure - not exposed in frontend)
+            api_key = GROQ_API_KEY
+
+            input_variable = step.get("input_variable")
+            fields = step.get("fields", [])  # List of {name, description}
+            output_variable = step.get("output_variable", "formatted_fields")
+
+            if input_variable not in self.variables:
+                return {
+                    "step_id": step["step_id"],
+                    "status": "error",
+                    "error": f"Variable '{input_variable}' not found"
+                }
+
+            # Get input data
+            input_data = self.variables[input_variable]
+
+            # Build prompt for LLM
+            prompt = self._build_llm_prompt(input_data, fields)
+
+            # Call Groq API (fast and free!)
+            url = "https://api.groq.com/openai/v1/chat/completions"
+
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+
+            payload = {
+                "model": "llama-3.3-70b-versatile",  # Fast Groq model
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": 0.3,
+                "max_tokens": 500
+            }
+
+            print(f"   🤖 Calling Groq LLM to format {len(fields)} fields...")
+
+            response = requests.post(url, headers=headers, json=payload, timeout=15)
+
+            if not response.ok:
+                return {
+                    "step_id": step["step_id"],
+                    "status": "error",
+                    "error": f"Groq API error: {response.status_code} - {response.text}"
+                }
+
+            result = response.json()
+
+            # Extract generated text (OpenAI-compatible format)
+            if "choices" not in result or len(result["choices"]) == 0:
+                return {
+                    "step_id": step["step_id"],
+                    "status": "error",
+                    "error": "No response from Groq"
+                }
+
+            generated_text = result["choices"][0]["message"]["content"]
+
+            print(f"   ✅ LLM Response received")
+
+            # Parse LLM output into field values
+            formatted_fields = self._parse_llm_output(generated_text, fields)
+
+            # Store in variables
+            self.variables[output_variable] = formatted_fields
+
+            return {
+                "step_id": step["step_id"],
+                "status": "success",
+                "output": {output_variable: formatted_fields}
+            }
+
+        except Exception as e:
+            return {
+                "step_id": step["step_id"],
+                "status": "error",
+                "error": f"LLM formatting failed: {str(e)}"
+            }
+
+    def _build_llm_prompt(self, input_data: Any, fields: list) -> str:
+        """Build prompt for Gemini to format data into fields"""
+        prompt = "You are a medical data formatter. Given patient data, format it for specific fields.\n\n"
+        prompt += "INPUT DATA:\n"
+
+        if isinstance(input_data, dict):
+            for key, value in input_data.items():
+                prompt += f"- {key}: {value}\n"
+        else:
+            prompt += str(input_data) + "\n"
+
+        prompt += "\nFIELDS TO FILL:\n"
+        for i, field in enumerate(fields, 1):
+            prompt += f"{i}. {field['name']}: {field['description']}\n"
+
+        prompt += "\nINSTRUCTIONS:\n"
+        prompt += "- Format the data appropriately for each field\n"
+        prompt += "- Keep it concise and clinical\n"
+        prompt += "- Use the exact field names in your response\n"
+        prompt += "- Format your response EXACTLY like this:\n\n"
+
+        for field in fields:
+            prompt += f"[{field['name']}]\n<content for this field>\n\n"
+
+        prompt += "Do NOT include any other text or explanations."
+
+        return prompt
+
+    def _parse_llm_output(self, llm_output: str, fields: list) -> dict:
+        """Parse LLM output into field values"""
+        import re
+
+        result = {}
+
+        for field in fields:
+            field_name = field['name']
+
+            # Try to extract content between [field_name] and next [
+            pattern = rf'\[{re.escape(field_name)}\]\s*\n(.*?)(?:\n\[|$)'
+            match = re.search(pattern, llm_output, re.DOTALL)
+
+            if match:
+                content = match.group(1).strip()
+                result[field_name] = content
+            else:
+                # Fallback: just use empty string
+                result[field_name] = ""
+
+        return result
+
     def _speech_to_text(self, step: Dict[str, Any]) -> Dict[str, Any]:
         """Speech-to-text - NOT IMPLEMENTED IN EXECUTOR"""
         return {
@@ -344,6 +500,8 @@ class WorkflowExecutor:
 
             value = self.variables
             for part in parts:
+                # Strip spaces from part for lookup
+                part = part.strip()
                 if isinstance(value, dict) and part in value:
                     value = value[part]
                 else:
@@ -351,6 +509,6 @@ class WorkflowExecutor:
 
             return str(value)
 
-        # Replace {variable} and {variable.key} patterns
-        result = re.sub(r'\{([a-zA-Z0-9_.]+)\}', replace_var, template)
+        # Replace {variable} and {variable.key} patterns (now allows spaces in keys)
+        result = re.sub(r'\{([a-zA-Z0-9_. ]+)\}', replace_var, template)
         return result
